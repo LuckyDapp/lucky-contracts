@@ -162,8 +162,10 @@ pub mod raffle_contract {
             let nb_winners = winners.len();
 
             // save the winners
+            let mut given_rewards = 0;
             for winner in &winners {
                 self._add_winner(winner.0);
+                given_rewards += winner.1;
             }
 
             // withdraw the rewards from developer dAppsStaking
@@ -172,7 +174,7 @@ pub mod raffle_contract {
                 .ok_or(ContractError::DappsStakingDeveloperAddressMissing)?;
             ink::env::call::build_call::<Environment>()
                 .call(dapps_staking_developer_address)
-                .exec_input(ExecutionInput::new(Selector::new(WITHDRAW_SELECTOR)).push_arg(rewards))
+                .exec_input(ExecutionInput::new(Selector::new(WITHDRAW_SELECTOR)).push_arg(given_rewards))
                 .returns::<()>()
                 .invoke();
             //.map_err(|_| ContractError::CrossContractCallError1)?;
@@ -183,7 +185,7 @@ pub mod raffle_contract {
                 .ok_or(ContractError::RewardManagerAddressMissing)?;
             ink::env::call::build_call::<Environment>()
                 .call(reward_manager_address)
-                .transferred_value(rewards)
+                .transferred_value(given_rewards)
                 .exec_input(
                     ExecutionInput::new(Selector::new(FUND_REWARDS_AND_WINNERS_SELECTOR))
                         .push_arg(era)
