@@ -1,13 +1,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-#![feature(min_specialization)]
 
 #[cfg(test)]
+#[openbrush::implementation(AccessControl)]
 #[openbrush::contract]
 pub mod participant_manager {
     use openbrush::contracts::access_control::{access_control, *};
     use openbrush::traits::Storage;
 
-    use lucky::impls::{participant_manager::*, *};
+    use lucky::traits::{participant_manager::*, *};
 
     #[ink(storage)]
     #[derive(Default, Storage)]
@@ -19,17 +19,15 @@ pub mod participant_manager {
     }
 
     impl ParticipantManager for Contract {}
-    impl AccessControl for Contract {}
 
     impl Contract {
         #[ink(constructor)]
         pub fn new() -> Self {
             let mut instance = Self::default();
             let caller = instance.env().caller();
-            instance._init_with_admin(caller);
-            instance
-                .grant_role(PARTICIPANT_MANAGER, caller)
-                .expect("Should grant the role ORACLE_DATA_MANAGER");
+            access_control::Internal::_init_with_admin(&mut instance, Some(caller));
+            AccessControl::grant_role(&mut instance, PARTICIPANT_MANAGER, Some(caller))
+                .expect("Should grant the role PARTICIPANT_MANAGER");
             instance
         }
     }

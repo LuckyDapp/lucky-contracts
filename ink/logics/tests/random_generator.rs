@@ -1,13 +1,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-#![feature(min_specialization)]
 
 #[cfg(test)]
+#[openbrush::implementation(AccessControl)]
 #[openbrush::contract]
 pub mod random_generator {
     use openbrush::contracts::access_control::{access_control, *};
     use openbrush::traits::Storage;
 
-    use lucky::impls::{random_generator::*, *};
+    use lucky::traits::{random_generator::*, *};
 
     #[ink(storage)]
     #[derive(Default, Storage)]
@@ -19,7 +19,6 @@ pub mod random_generator {
     }
 
     impl RandomGenerator for Contract {}
-    impl AccessControl for Contract {}
 
     impl Contract {
         #[ink(constructor)]
@@ -27,12 +26,10 @@ pub mod random_generator {
             let mut instance = Self::default();
             instance.random_generator = random_generator::Data::default();
             let caller = instance.env().caller();
-            instance._init_with_admin(caller);
-            instance
-                .grant_role(RANDOM_GENERATOR_CONSUMER, caller)
+            access_control::Internal::_init_with_admin(&mut instance, Some(caller));
+            AccessControl::grant_role(&mut instance, RANDOM_GENERATOR_CONSUMER, Some(caller))
                 .expect("Should grant the role RANDOM_GENERATOR_CONSUMER");
-            instance
-                .grant_role(RANDOM_GENERATOR_MANAGER, caller)
+            AccessControl::grant_role(&mut instance, RANDOM_GENERATOR_MANAGER, Some(caller))
                 .expect("Should grant the role RANDOM_GENERATOR_MANAGER");
             instance
         }

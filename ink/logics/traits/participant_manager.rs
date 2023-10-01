@@ -4,7 +4,7 @@ use openbrush::contracts::access_control::{access_control, AccessControlError, R
 use openbrush::traits::{AccountId, Balance, Storage};
 
 pub const PARTICIPANT_MANAGER: RoleType = ink::selector_id!("PARTICIPANT_MANAGER");
-pub const MAX_PART_BY_VEC: usize = 300;
+pub const MAX_PART_BY_VEC: usize = 150;
 pub const MAX_PART: usize = MAX_PART_BY_VEC * 6;
 
 #[derive(Debug, Eq, PartialEq, scale::Encode, scale::Decode)]

@@ -1,13 +1,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-#![feature(min_specialization)]
 
 #[cfg(test)]
+#[openbrush::implementation(AccessControl)]
 #[openbrush::contract]
 pub mod raffle {
-    use lucky::impls::participant_filter::filter_latest_winners;
-    use lucky::impls::{
-        participant_filter::filter_latest_winners::*, participant_manager::*, raffle::*,
-        random_generator, random_generator::*, reward::psp22_reward, reward::psp22_reward::*, *,
+    use lucky::traits::{
+        participant_filter::filter_latest_winners, participant_filter::filter_latest_winners::*,
+        participant_manager::*, raffle::*, random::*, random_generator, random_generator::*,
+        reward::psp22_reward, reward::psp22_reward::*, *,
     };
     use openbrush::contracts::access_control::{access_control, *};
     use openbrush::traits::Storage;
@@ -30,9 +30,10 @@ pub mod raffle {
     }
 
     impl ParticipantManager for Contract {}
+    impl Psp22Reward for Contract {}
     impl Raffle for Contract {}
     impl FilterLatestWinners for Contract {}
-    impl AccessControl for Contract {}
+    impl RandomGenerator for Contract {}
 
     impl Random for Contract {
         fn get_random_number(&mut self, min: u128, max: u128) -> Result<u128, RandomError> {
@@ -46,24 +47,18 @@ pub mod raffle {
         pub fn new() -> Self {
             let mut instance = Self::default();
             let caller = instance.env().caller();
-            instance._init_with_admin(caller);
-            instance
-                .grant_role(PARTICIPANT_MANAGER, caller)
+            access_control::Internal::_init_with_admin(&mut instance, Some(caller));
+            AccessControl::grant_role(&mut instance, PARTICIPANT_MANAGER, Some(caller))
                 .expect("Should grant the role PARTICIPANT_MANAGER");
-            instance
-                .grant_role(RAFFLE_MANAGER, caller)
+            AccessControl::grant_role(&mut instance, RAFFLE_MANAGER, Some(caller))
                 .expect("Should grant the role RAFFLE_MANAGER");
-            instance
-                .grant_role(REWARD_MANAGER, caller)
+            AccessControl::grant_role(&mut instance, REWARD_MANAGER, Some(caller))
                 .expect("Should grant the role REWARD_MANAGER");
-            instance
-                .grant_role(REWARD_VIEWER, caller)
+            AccessControl::grant_role(&mut instance, REWARD_VIEWER, Some(caller))
                 .expect("Should grant the role REWARD_VIEWER");
-            instance
-                .grant_role(RANDOM_GENERATOR_CONSUMER, caller)
+            AccessControl::grant_role(&mut instance, RANDOM_GENERATOR_CONSUMER, Some(caller))
                 .expect("Should grant the role RANDOM_GENERATOR_CONSUMER");
-            instance
-                .grant_role(PARTICIPANT_FILTER_MANAGER, caller)
+            AccessControl::grant_role(&mut instance, PARTICIPANT_FILTER_MANAGER, Some(caller))
                 .expect("Should grant the role PARTICIPANT_FILTER_MANAGER");
             instance
         }
@@ -100,7 +95,7 @@ pub mod raffle {
             }
 
             // transfer the rewards and the winners
-            ink::env::pay_with_call!(self.fund_rewards_and_add_winners(era, winners), rewards)?;
+            ink::env::pay_with_call!( self.fund_rewards_and_add_winners(era, winners), rewards)?;
 
             Ok(())
         }
@@ -158,7 +153,7 @@ pub mod raffle {
             // 50 + 30 + 20 > 80 => Error
             let result = contract.set_ratio_distribution(vec![50, 30, 20], 90);
             match result {
-                Err(IncorrectRatio) => debug_println!("Incorrect Ratio as expected"),
+                Err(RaffleError::IncorrectRatio) => debug_println!("Incorrect Ratio as expected"),
                 _ => panic!("Error 1"),
             };
 
@@ -198,7 +193,7 @@ pub mod raffle {
 
             let result = contract._run_raffle(1, 1000);
             match result {
-                Err(NoRatioSet) => debug_println!("NoRatioSet as expected"),
+                Err(RaffleError::NoRatioSet) => debug_println!("NoRatioSet as expected"),
                 _ => panic!("Error 1"),
             };
         }
@@ -218,7 +213,7 @@ pub mod raffle {
 
             let result = contract._run_raffle(1, 1000);
             match result {
-                Err(NoParticipant) => debug_println!("NoParticipant as expected"),
+                Err(RaffleError::NoParticipant) => debug_println!("NoParticipant as expected"),
                 _ => panic!("Error 1"),
             };
         }

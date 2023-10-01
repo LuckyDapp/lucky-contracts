@@ -1,14 +1,15 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-#![feature(min_specialization)]
 
 #[cfg(test)]
+#[openbrush::implementation(AccessControl)]
 #[openbrush::contract]
 pub mod psp22_reward {
-    use openbrush::contracts::access_control::{access_control, *};
+    use openbrush::contracts::access_control::{AccessControlError, *};
     use openbrush::traits::Storage;
 
-    use lucky::impls::reward::psp22_reward;
-    use lucky::impls::reward::psp22_reward::*;
+    use lucky::traits::reward::psp22_reward;
+    use lucky::traits::reward::psp22_reward::RewardError::*;
+    use lucky::traits::reward::psp22_reward::*;
 
     #[ink(storage)]
     #[derive(Default, Storage)]
@@ -20,7 +21,6 @@ pub mod psp22_reward {
     }
 
     impl Psp22Reward for Contract {}
-    impl AccessControl for Contract {}
 
     impl Contract {
         #[ink(constructor)]
@@ -28,12 +28,10 @@ pub mod psp22_reward {
             let mut instance = Self::default();
             instance.rewards = psp22_reward::Data::default();
             let caller = instance.env().caller();
-            instance._init_with_admin(caller);
-            instance
-                .grant_role(REWARD_MANAGER, caller)
+            access_control::Internal::_init_with_admin(&mut instance, Some(caller));
+            AccessControl::grant_role(&mut instance, REWARD_MANAGER, Some(caller))
                 .expect("Should grant the role REWARD_MANAGER");
-            instance
-                .grant_role(REWARD_VIEWER, caller)
+            AccessControl::grant_role(&mut instance, REWARD_VIEWER, Some(caller))
                 .expect("Should grant the role REWARD_VIEWER");
             instance
         }
