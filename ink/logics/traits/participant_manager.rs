@@ -1,5 +1,4 @@
 use ink::prelude::vec::Vec;
-use ink::storage::Lazy;
 use openbrush::contracts::access_control::{access_control, AccessControlError, RoleType};
 use openbrush::traits::{AccountId, Balance, Storage};
 
@@ -231,8 +230,8 @@ pub trait ParticipantManager: Storage<Data> + access_control::Internal {
             } else {
                 return Err(ParticipantManagerError::MaxSizeExceeded);
             }
-            nb_participants = nb_participants + inserted_participants;
-            index = index + inserted_participants;
+            nb_participants += inserted_participants;
+            index += inserted_participants;
         }
         self.data::<Data>().nb_participants = nb_participants as u16;
         Ok(())

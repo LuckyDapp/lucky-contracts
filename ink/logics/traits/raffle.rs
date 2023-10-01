@@ -76,7 +76,7 @@ pub trait Raffle: Storage<Data> + access_control::Internal + Random + Participan
             return Err(NoRatioSet);
         }
 
-        if total_rewards <= 0 {
+        if total_rewards == 0 {
             // no reward
             return Err(NoReward);
         }

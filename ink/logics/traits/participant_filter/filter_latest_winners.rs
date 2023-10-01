@@ -1,4 +1,4 @@
-use crate::traits::participant_filter::participant_filter::ParticipantFilterError;
+use crate::traits::participant_filter::ParticipantFilterError;
 use ink::prelude::collections::vec_deque::VecDeque;
 use ink::prelude::vec::Vec;
 use openbrush::contracts::access_control::{access_control, RoleType};
