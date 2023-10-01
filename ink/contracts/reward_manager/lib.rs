@@ -52,8 +52,8 @@ pub mod reward_manager {
     }
 
     /// Contract storage
-    #[derive(Default, Storage)]
     #[ink(storage)]
+    #[derive(Default, Storage)]
     pub struct Contract {
         #[storage_field]
         reward: psp22_reward::Data,

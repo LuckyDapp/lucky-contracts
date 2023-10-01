@@ -74,8 +74,8 @@ pub mod raffle_contract {
     }
 
     /// Contract storage
-    #[derive(Default, Storage)]
     #[ink(storage)]
+    #[derive(Default, Storage)]
     pub struct Contract {
         #[storage_field]
         participant_manager: participant_manager::Data,

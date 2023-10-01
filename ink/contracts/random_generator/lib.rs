@@ -24,8 +24,8 @@ pub mod random_generator {
     }
 
     /// Contract storage
-    #[derive(Default, Storage)]
     #[ink(storage)]
+    #[derive(Default, Storage)]
     pub struct Contract {
         #[storage_field]
         random_generator_data: random_generator::Data,
