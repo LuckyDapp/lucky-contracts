@@ -1,6 +1,6 @@
 [package]
 name = "dapps_staking_developer"
-version = "0.1.0"
+version = "1.0.0"
 authors = ["guigou"]
 edition = "2021"
 
