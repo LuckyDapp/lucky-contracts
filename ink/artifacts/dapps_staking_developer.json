@@ -1,10 +1,10 @@
 {
   "source": {
-    "hash": "0x377c430850efd64e8ed8f006fd01ca6ba6999d00dae3ca9abbc6014a547f1228",
+    "hash": "0xd644fa3b07179e8602a4656aea5d4de0e0fe9fb2a02ae69138ba7db601aa8a48",
     "language": "ink! 4.3.0",
     "compiler": "rustc 1.72.0",
     "build_info": {
-      "build_mode": "Release",
+      "build_mode": "Debug",
       "cargo_contract_version": "3.2.0",
       "rust_toolchain": "stable-x86_64-unknown-linux-gnu",
       "wasm_opt_settings": {
@@ -15,7 +15,7 @@
   },
   "contract": {
     "name": "dapps_staking_developer",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "authors": [
       "guigou"
     ]
@@ -44,7 +44,7 @@
         "displayName": [
           "AccountId"
         ],
-        "type": 13
+        "type": 14
       },
       "balance": {
         "displayName": [
@@ -68,7 +68,7 @@
         "displayName": [
           "Hash"
         ],
-        "type": 18
+        "type": 9
       },
       "maxEventTopics": 4,
       "timestamp": {
@@ -118,7 +118,9 @@
           {
             "label": "new_code_hash",
             "type": {
-              "displayName": [],
+              "displayName": [
+                "Hash"
+              ],
               "type": 9
             }
           }
@@ -141,6 +143,22 @@
         "args": [],
         "default": false,
         "docs": [],
+        "label": "terminate_me",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 5
+        },
+        "selector": "0x17feb370"
+      },
+      {
+        "args": [],
+        "default": false,
+        "docs": [],
         "label": "get_role_whitelisted_address",
         "mutates": false,
         "payable": false,
@@ -149,7 +167,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 11
+          "type": 12
         },
         "selector": "0x9e448aa7"
       },
@@ -172,7 +190,7 @@
                 "accesscontrol_external",
                 "RevokeRoleInput2"
               ],
-              "type": 12
+              "type": 13
             }
           }
         ],
@@ -186,7 +204,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 14
+          "type": 15
         },
         "selector": "0x6e4f0991"
       },
@@ -209,7 +227,7 @@
                 "accesscontrol_external",
                 "RenounceRoleInput2"
               ],
-              "type": 12
+              "type": 13
             }
           }
         ],
@@ -223,7 +241,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 14
+          "type": 15
         },
         "selector": "0xeaf1248a"
       },
@@ -246,7 +264,7 @@
                 "accesscontrol_external",
                 "HasRoleInput2"
               ],
-              "type": 12
+              "type": 13
             }
           }
         ],
@@ -260,7 +278,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 16
+          "type": 17
         },
         "selector": "0xc1d9ac18"
       },
@@ -287,7 +305,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 11
+          "type": 12
         },
         "selector": "0x83da3bb2"
       },
@@ -310,7 +328,7 @@
                 "accesscontrol_external",
                 "GrantRoleInput2"
               ],
-              "type": 12
+              "type": 13
             }
           }
         ],
@@ -324,7 +342,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 14
+          "type": 15
         },
         "selector": "0x4ac062fd"
       }
@@ -618,15 +636,35 @@
       "id": 9,
       "type": {
         "def": {
+          "composite": {
+            "fields": [
+              {
+                "type": 10,
+                "typeName": "[u8; 32]"
+              }
+            ]
+          }
+        },
+        "path": [
+          "ink_primitives",
+          "types",
+          "Hash"
+        ]
+      }
+    },
+    {
+      "id": 10,
+      "type": {
+        "def": {
           "array": {
             "len": 32,
-            "type": 10
+            "type": 11
           }
         }
       }
     },
     {
-      "id": 10,
+      "id": 11,
       "type": {
         "def": {
           "primitive": "u8"
@@ -634,7 +672,7 @@
       }
     },
     {
-      "id": 11,
+      "id": 12,
       "type": {
         "def": {
           "variant": {
@@ -676,7 +714,7 @@
       }
     },
     {
-      "id": 12,
+      "id": 13,
       "type": {
         "def": {
           "variant": {
@@ -688,7 +726,7 @@
               {
                 "fields": [
                   {
-                    "type": 13
+                    "type": 14
                   }
                 ],
                 "index": 1,
@@ -700,7 +738,7 @@
         "params": [
           {
             "name": "T",
-            "type": 13
+            "type": 14
           }
         ],
         "path": [
@@ -709,13 +747,13 @@
       }
     },
     {
-      "id": 13,
+      "id": 14,
       "type": {
         "def": {
           "composite": {
             "fields": [
               {
-                "type": 9,
+                "type": 10,
                 "typeName": "[u8; 32]"
               }
             ]
@@ -729,7 +767,7 @@
       }
     },
     {
-      "id": 14,
+      "id": 15,
       "type": {
         "def": {
           "variant": {
@@ -737,7 +775,7 @@
               {
                 "fields": [
                   {
-                    "type": 15
+                    "type": 16
                   }
                 ],
                 "index": 0,
@@ -758,7 +796,7 @@
         "params": [
           {
             "name": "T",
-            "type": 15
+            "type": 16
           },
           {
             "name": "E",
@@ -771,7 +809,7 @@
       }
     },
     {
-      "id": 15,
+      "id": 16,
       "type": {
         "def": {
           "variant": {
@@ -813,7 +851,7 @@
       }
     },
     {
-      "id": 16,
+      "id": 17,
       "type": {
         "def": {
           "variant": {
@@ -821,7 +859,7 @@
               {
                 "fields": [
                   {
-                    "type": 17
+                    "type": 18
                   }
                 ],
                 "index": 0,
@@ -842,7 +880,7 @@
         "params": [
           {
             "name": "T",
-            "type": 17
+            "type": 18
           },
           {
             "name": "E",
@@ -855,31 +893,11 @@
       }
     },
     {
-      "id": 17,
+      "id": 18,
       "type": {
         "def": {
           "primitive": "bool"
         }
-      }
-    },
-    {
-      "id": 18,
-      "type": {
-        "def": {
-          "composite": {
-            "fields": [
-              {
-                "type": 9,
-                "typeName": "[u8; 32]"
-              }
-            ]
-          }
-        },
-        "path": [
-          "ink_primitives",
-          "types",
-          "Hash"
-        ]
       }
     },
     {
