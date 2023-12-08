@@ -79,9 +79,15 @@ pub mod reward_manager {
 
         #[ink(message)]
         #[modifiers(only_role(DEFAULT_ADMIN_ROLE))]
-        pub fn upgrade_contract(&mut self, new_code_hash: [u8; 32]) -> Result<(), ContractError> {
-            ink::env::set_code_hash(&new_code_hash).map_err(|_| ContractError::UpgradeError)?;
+        pub fn upgrade_contract(&mut self, new_code_hash: Hash) -> Result<(), ContractError> {
+            self.env().set_code_hash(&new_code_hash).map_err(|_| ContractError::UpgradeError)?;
             Ok(())
+        }
+
+        #[ink(message)]
+        #[modifiers(only_role(DEFAULT_ADMIN_ROLE))]
+        pub fn terminate_me(&mut self) -> Result<(), ContractError> {
+            self.env().terminate_contract(self.env().caller());
         }
 
         #[ink(message)]
@@ -98,7 +104,7 @@ pub mod reward_manager {
         #[openbrush::modifiers(only_role(WHITELISTED_ADDRESS))]
         pub fn withdraw(&mut self, value: Balance) -> Result<(), ContractError> {
             let caller = Self::env().caller();
-            Self::env()
+            self.env()
                 .transfer(caller, value)
                 .map_err(|_| ContractError::TransferError)?;
             Ok(())
