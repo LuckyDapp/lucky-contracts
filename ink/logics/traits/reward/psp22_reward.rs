@@ -81,12 +81,14 @@ pub trait Psp22Reward: Internal + Storage<Data> + access_control::Internal {
     #[ink(message)]
     fn claim(&mut self) -> Result<(), RewardError> {
         let from = Self::env().caller();
-        self._claim_from(from)
+        self.claim_from(from)
     }
 
     /// claim all pending rewards for the given account
     /// After claiming, there is not anymore pending rewards for this account
-    fn _claim_from(&mut self, from: AccountId) -> Result<(), RewardError> {
+    #[ink(message)]
+    #[openbrush::modifiers(access_control::only_role(REWARD_MANAGER))]
+    fn claim_from(&mut self, from: AccountId) -> Result<(), RewardError> {
         // get all pending rewards for this account
         match self.data::<Data>().pending_rewards.get(&from) {
             Some(pending_rewards) => {
