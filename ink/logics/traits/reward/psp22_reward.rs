@@ -9,6 +9,7 @@ pub type Psp22RewardRef = dyn Psp22Reward;
 
 pub const REWARD_MANAGER: RoleType = ink::selector_id!("REWARD_MANAGER");
 pub const REWARD_VIEWER: RoleType = ink::selector_id!("REWARD_VIEWER");
+pub const CLAIMER_FROM: RoleType = ink::selector_id!("CLAIMER_FROM");
 
 #[derive(Default, Debug)]
 #[openbrush::storage_item]
@@ -81,14 +82,18 @@ pub trait Psp22Reward: Internal + Storage<Data> + access_control::Internal {
     #[ink(message)]
     fn claim(&mut self) -> Result<(), RewardError> {
         let from = Self::env().caller();
-        self.claim_from(from)
+        self._claim_from(from)
     }
 
     /// claim all pending rewards for the given account
     /// After claiming, there is not anymore pending rewards for this account
     #[ink(message)]
-    #[openbrush::modifiers(access_control::only_role(REWARD_MANAGER))]
+    #[openbrush::modifiers(access_control::only_role(CLAIMER_FROM))]
     fn claim_from(&mut self, from: AccountId) -> Result<(), RewardError> {
+        self._claim_from(from)
+    }
+
+    fn _claim_from(&mut self, from: AccountId) -> Result<(), RewardError> {
         // get all pending rewards for this account
         match self.data::<Data>().pending_rewards.get(&from) {
             Some(pending_rewards) => {

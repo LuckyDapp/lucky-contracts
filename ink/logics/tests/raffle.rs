@@ -478,7 +478,7 @@ pub mod raffle {
             };
 
             // alice claims the rewards
-            contract.claim_from(accounts.alice).unwrap();
+            contract._claim_from(accounts.alice).unwrap();
 
             match get_reward(&mut contract, accounts.alice) {
                 Some(_) => panic!("alice should not have reward anymore"),
@@ -513,7 +513,7 @@ pub mod raffle {
             };
 
             // Bob claims the rewards
-            contract.claim_from(accounts.bob).unwrap();
+            contract._claim_from(accounts.bob).unwrap();
 
             match get_reward(&mut contract, accounts.bob) {
                 Some(_) => panic!("Bob should not have reward anymore"),
