@@ -96,6 +96,11 @@ pub mod reward_manager {
         }
 
         #[ink(message)]
+        pub fn get_role_claimer_from(&self) -> RoleType {
+            CLAIMER_FROM
+        }
+
+        #[ink(message)]
         pub fn get_role_reward_viewer(&self) -> RoleType {
             REWARD_VIEWER
         }
