@@ -75,9 +75,12 @@ function getRewards(graphApi: string, era: number): bigint {
     "Content-Type": "application/json",
     "User-Agent": "phat-contract",
   };
+
   let query = JSON.stringify({
-    query : `query {developerRewards(filter: { era: { equalTo: \"${era}\"  } }) {nodes {amount, era}}}`
+    query : `query {dAppRewards(filter: { era: { equalTo: \"${era}\"  } }) {nodes {amount, era}}}`
   });
+
+  console.log("query: " + query);
 
   let body = stringToHex(query);
   //
@@ -110,7 +113,9 @@ function getRewards(graphApi: string, era: number): bigint {
     throw Error.FailedToDecodeReward;
   }
 
-  const node = JSON.parse(respBody).data.developerRewards.nodes[0];
+  console.log("respBody: " + respBody);
+  const node = JSON.parse(respBody).data.dAppRewards.nodes[0];
+
   if (node == undefined || node.amount == undefined || node.amount == 0){
     console.log(`No rewards: ${node}`);
     throw Error.NoReward;
@@ -130,14 +135,17 @@ interface GetParticipantsQueryResult {
   keys: string[];
 }
 
-function getParticipants(graphApi: string, era: number): Participant[] {
+function getParticipants(graphApi: string, period: number, era: number): Participant[] {
   let headers = {
     "Content-Type": "application/json",
     "User-Agent": "phat-contract",
   };
+
   let query = JSON.stringify({
-    query : `query {stakes(filter: { era: { lessThanOrEqualTo: \"${era}\" }}) {groupedAggregates(groupBy: [ACCOUNT_ID], having: { sum: { amount: { notEqualTo: "0" }}}) { sum{amount}, keys }}}`
+    query : `query { stakes(filter: {and: [ {period: {equalTo: \"${period}\"}}, {era: {lessThan: \"${era}\"}}]}) {groupedAggregates(groupBy: [ACCOUNT_ID], having: { sum: { amount: { notEqualTo: "0" }}}) { sum{amount}, keys }}}`
   });
+
+  console.log("query: " + query);
 
   let body = stringToHex(query);
   //
@@ -259,7 +267,7 @@ function formatOutput(output: Output): Uint8Array {
 //
 // Your returns value MUST be a Uint8Array, and it will send to your contract directly.
 //export default function main(request: HexString, settings: string): Uint8Array {
-export default function main(era: number, nbWinners: number, excluded: string[], settings: string): Uint8Array {
+export default function main(period: number, era: number, nbWinners: number, excluded: string[], settings: string): Uint8Array {
 
   //console.log(`handle req: ${request}`);
   console.log(`settings: ${settings}`);
@@ -270,15 +278,13 @@ export default function main(era: number, nbWinners: number, excluded: string[],
   //const nbWinners = input.nbWinners;
   //const excluded = input.excluded;
 
-  console.log(`Request received for era ${era}`);
+  console.log(`Request received for period ${period} and era ${era}`);
   console.log(`Select ${nbWinners} address(es) excluding ${excluded}`);
   console.log(`Query endpoint ${graphApi}`);
 
   try {
-
     const rewards = getRewards(graphApi, era);
-
-    let participants = getParticipants(graphApi, era);
+    let participants = getParticipants(graphApi, period, era);
     participants =  excludeParticipants(participants, excluded);
 
     let winners : string[] = [];
