@@ -4,7 +4,8 @@
   "scripts": {
     "build-function-raffle": "phat-fn build src/raffle.ts",
     "run-function-raffle": "phat-fn run dist/raffle.js",
-    "test-function-raffle": "phat-fn run dist/raffle.js -a 580 1 [] https://query.substrate.fi/lucky-subquery-astar"
+    "test-function-raffle": "phat-fn run dist/raffle.js -a 4 4367 1 [] http://127.0.0.1:3000",
+    "test-function-raffle-old": "phat-fn run dist/raffle.js -a 580 1 [] https://query.substrate.fi/lucky-subquery-astar"
   },
   "devDependencies": {
     "@types/node": ">=12.0.0",
