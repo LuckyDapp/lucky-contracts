@@ -305,19 +305,362 @@ pub mod raffle_contract {
         }
     }
 
+    
+    #[cfg(all(test, feature = "e2e-tests"))]
+    mod e2e_tests {
+        use super::*;
+        use openbrush::contracts::access_control::accesscontrol_external::AccessControl;
 
+        use ink::env::DefaultEnvironment;
+        use ink_e2e::subxt::tx::Signer;
+        use ink_e2e::{build_message, PolkadotConfig};
+        use scale::Encode;
 
+        use phat_rollup_anchor_ink::traits::{
+            meta_transaction::metatransaction_external::MetaTransaction,
+            rollup_anchor::rollupanchor_external::RollupAnchor,
+            js_rollup_anchor::jsrollupanchor_external::JsRollupAnchor,
+            js_rollup_anchor::ResponseMessage::{Error, JsResponse},
+        };
 
+        type E2EResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
+        async fn alice_instantiates_contract(
+            client: &mut ink_e2e::Client<PolkadotConfig, DefaultEnvironment>,
+        ) -> AccountId {
+            let constructor = ContractRef::new();
+            client
+                .instantiate(
+                    "raffle_contract",
+                    &ink_e2e::alice(),
+                    constructor,
+                    0,
+                    None,
+                )
+                .await
+                .expect("instantiate failed")
+                .account_id
+        }
 
+        async fn alice_set_js_script_hash(
+            client: &mut ink_e2e::Client<PolkadotConfig, DefaultEnvironment>,
+            contract_id: &AccountId,
+        ) {
+            let code_hash = [1u8; 32];
+            let set_js_script_hash = build_message::<ContractRef>(contract_id.clone())
+                .call(|oracle| oracle.set_js_script_hash(code_hash));
+            client
+                .call(&ink_e2e::alice(), set_js_script_hash, 0, None)
+                .await
+                .expect("set js code hash failed");
+        }
 
+        async fn alice_set_settings_hash(
+            client: &mut ink_e2e::Client<PolkadotConfig, DefaultEnvironment>,
+            contract_id: &AccountId,
+        ) {
+            let code_hash = [2u8; 32];
+            let set_settings_hash = build_message::<ContractRef>(contract_id.clone())
+                .call(|oracle| oracle.set_settings_hash(code_hash));
+            client
+                .call(&ink_e2e::alice(), set_settings_hash, 0, None)
+                .await
+                .expect("set settings hash failed");
+        }
 
+        async fn alice_grants_bob_as_attestor(
+            client: &mut ink_e2e::Client<PolkadotConfig, DefaultEnvironment>,
+            contract_id: &AccountId,
+        ) {
+            // bob is granted as attestor
+            let bob_address = ink::primitives::AccountId::from(ink_e2e::bob().public_key().0);
+            let grant_role = build_message::<ContractRef>(contract_id.clone())
+                .call(|oracle| oracle.grant_role(ATTESTOR_ROLE, Some(bob_address)));
+            client
+                .call(&ink_e2e::alice(), grant_role, 0, None)
+                .await
+                .expect("grant bob as attestor failed");
+        }
 
+        #[ink_e2e::test]
+        async fn test_receive_data(mut client: ink_e2e::Client<C, E>) -> E2EResult<()> {
+            // given
+            let contract_id = alice_instantiates_contract(&mut client).await;
 
+            // set the js code hash
+            alice_set_js_script_hash(&mut client, &contract_id).await;
 
+            // set the settings code hash
+            alice_set_settings_hash(&mut client, &contract_id).await;
 
+            // bob is granted as attestor
+            alice_grants_bob_as_attestor(&mut client, &contract_id).await;
 
+            let dave_address = ink::primitives::AccountId::from(ink_e2e::dave().public_key().0);
 
+            // data is received
+            let response = RaffleResponseMessage {
+                era: 12,
+                rewards: 9958,
+                winners: [dave_address].to_vec(),
+            };
 
+            let payload = JsResponse {
+                js_script_hash: [1u8; 32],
+                input_hash: [3u8; 32],
+                settings_hash: [2u8; 32],
+                output_value: response.encode(),
+            };
+            let actions = vec![HandleActionInput::Reply(payload.encode())];
+            let rollup_cond_eq = build_message::<ContractRef>(contract_id.clone())
+                .call(|oracle| oracle.rollup_cond_eq(vec![], vec![], actions.clone()));
+            let result = client
+                .call(&ink_e2e::bob(), rollup_cond_eq, 0, None)
+                .await
+                .expect("rollup cond eq should be ok");
+            // two events : MessageProcessedTo and ValueReceived
+            assert!(result.contains_event("Contracts", "ContractEmitted"));
+
+            // and check if the data is filled
+            let get_last_era_done = build_message::<ContractRef>(contract_id.clone())
+                .call(|oracle| oracle.get_last_era_done());
+            let get_res = client
+                .call_dry_run(&ink_e2e::charlie(), &get_last_era_done, 0, None)
+                .await;
+            let last_era_done = get_res.return_value().expect("Last era not found");
+
+            assert_eq!(12, last_era_done);
+
+            Ok(())
+        }
+
+        #[ink_e2e::test]
+        async fn test_receive_error(mut client: ink_e2e::Client<C, E>) -> E2EResult<()> {
+            // given
+            let contract_id = alice_instantiates_contract(&mut client).await;
+
+            // set the js code hash
+            alice_set_js_script_hash(&mut client, &contract_id).await;
+
+            // set the settings code hash
+            alice_set_settings_hash(&mut client, &contract_id).await;
+
+            // bob is granted as attestor
+            alice_grants_bob_as_attestor(&mut client, &contract_id).await;
+
+            let input_data = RaffleRequestMessage {
+                era: 101,
+                nb_winners: 1,
+                excluded: [].to_vec(),
+            };
+
+            // then a response is received
+            let error = vec![3u8; 5];
+            let payload = Error {
+                js_script_hash: [1u8; 32],
+                input_value: input_data.encode(),
+                settings_hash: [2u8; 32],
+                error,
+            };
+            let actions = vec![HandleActionInput::Reply(payload.encode())];
+            let rollup_cond_eq = build_message::<ContractRef>(contract_id.clone())
+                .call(|oracle| oracle.rollup_cond_eq(vec![], vec![], actions.clone()));
+            let result = client
+                .call(&ink_e2e::bob(), rollup_cond_eq, 0, None)
+                .await
+                .expect("we should proceed error message");
+            // two events : MessageProcessedTo and ErrorReceived
+            assert!(result.contains_event("Contracts", "ContractEmitted"));
+
+            Ok(())
+        }
+
+        #[ink_e2e::test]
+        async fn test_bad_attestor(mut client: ink_e2e::Client<C, E>) -> E2EResult<()> {
+            // given
+            let contract_id = alice_instantiates_contract(&mut client).await;
+
+            // set the js code hash
+            alice_set_js_script_hash(&mut client, &contract_id).await;
+
+            // set the settings code hash
+            alice_set_settings_hash(&mut client, &contract_id).await;
+
+            // bob is not granted as attestor => it should not be able to send a message
+            let rollup_cond_eq = build_message::<ContractRef>(contract_id.clone())
+                .call(|oracle| oracle.rollup_cond_eq(vec![], vec![], vec![]));
+            let result = client.call(&ink_e2e::bob(), rollup_cond_eq, 0, None).await;
+            assert!(
+                result.is_err(),
+                "only attestor should be able to send messages"
+            );
+
+            // bob is granted as attestor
+            alice_grants_bob_as_attestor(&mut client, &contract_id).await;
+
+            // then bob is able to send a message
+            let rollup_cond_eq = build_message::<ContractRef>(contract_id.clone())
+                .call(|oracle| oracle.rollup_cond_eq(vec![], vec![], vec![]));
+            let result = client
+                .call(&ink_e2e::bob(), rollup_cond_eq, 0, None)
+                .await
+                .expect("rollup cond eq failed");
+            // no event
+            assert!(!result.contains_event("Contracts", "ContractEmitted"));
+
+            Ok(())
+        }
+
+        #[ink_e2e::test]
+        async fn test_bad_hash(mut client: ink_e2e::Client<C, E>) -> E2EResult<()> {
+            // given
+            let contract_id = alice_instantiates_contract(&mut client).await;
+
+            // set the js code hash
+            alice_set_js_script_hash(&mut client, &contract_id).await;
+
+            // set the settings code hash
+            alice_set_settings_hash(&mut client, &contract_id).await;
+
+            // bob is granted as attestor
+            alice_grants_bob_as_attestor(&mut client, &contract_id).await;
+
+            // a response is received
+            let dave_address = ink::primitives::AccountId::from(ink_e2e::dave().public_key().0);
+            let response = RaffleResponseMessage {
+                era: 12,
+                rewards: 9958,
+                winners: [dave_address].to_vec(),
+            };
+            let payload = JsResponse {
+                js_script_hash: [9u8; 32],
+                input_hash: [3u8; 32],
+                settings_hash: [2u8; 32],
+                output_value: response.encode(),
+            };
+            let actions = vec![HandleActionInput::Reply(payload.encode())];
+            let rollup_cond_eq = build_message::<ContractRef>(contract_id.clone())
+                .call(|oracle| oracle.rollup_cond_eq(vec![], vec![], actions.clone()));
+            let result = client.call(&ink_e2e::bob(), rollup_cond_eq, 0, None).await;
+            assert!(
+                result.is_err(),
+                "We should not accept response with bad js code hash"
+            );
+
+            let payload = JsResponse {
+                js_script_hash: [1u8; 32],
+                input_hash: [3u8; 32],
+                settings_hash: [9u8; 32],
+                output_value: response.encode(),
+            };
+            let actions = vec![HandleActionInput::Reply(payload.encode())];
+            let rollup_cond_eq = build_message::<ContractRef>(contract_id.clone())
+                .call(|oracle| oracle.rollup_cond_eq(vec![], vec![], actions.clone()));
+            let result = client.call(&ink_e2e::bob(), rollup_cond_eq, 0, None).await;
+            assert!(
+                result.is_err(),
+                "We should not accept response with bad settings code hash"
+            );
+
+            Ok(())
+        }
+
+        #[ink_e2e::test]
+        async fn test_bad_messages(mut client: ink_e2e::Client<C, E>) -> E2EResult<()> {
+            // given
+
+            let contract_id = alice_instantiates_contract(&mut client).await;
+
+            // set the js code hash
+            alice_set_js_script_hash(&mut client, &contract_id).await;
+
+            // set the settings code hash
+            alice_set_settings_hash(&mut client, &contract_id).await;
+
+            // bob is granted as attestor
+            alice_grants_bob_as_attestor(&mut client, &contract_id).await;
+
+            let actions = vec![HandleActionInput::Reply(58u128.encode())];
+            let rollup_cond_eq = build_message::<ContractRef>(contract_id.clone())
+                .call(|oracle| oracle.rollup_cond_eq(vec![], vec![], actions.clone()));
+            let result = client.call(&ink_e2e::bob(), rollup_cond_eq, 0, None).await;
+            assert!(
+                result.is_err(),
+                "we should not be able to proceed bad messages"
+            );
+
+            Ok(())
+        }
+
+        ///
+        /// Test the meta transactions
+        /// Alice is the owner
+        /// Bob is the attestor
+        /// Charlie is the sender (ie the payer)
+        ///
+        #[ink_e2e::test]
+        async fn test_meta_tx_rollup_cond_eq(mut client: ink_e2e::Client<C, E>) -> E2EResult<()> {
+            let contract_id = alice_instantiates_contract(&mut client).await;
+
+            // Bob is the attestor
+            // use the ecsda account because we are not able to verify the sr25519 signature
+            let from = ink::primitives::AccountId::from(
+                Signer::<PolkadotConfig>::account_id(&subxt_signer::ecdsa::dev::bob()).0,
+            );
+
+            // add the role => it should be succeed
+            let grant_role = build_message::<ContractRef>(contract_id.clone())
+                .call(|oracle| oracle.grant_role(ATTESTOR_ROLE, Some(from)));
+            client
+                .call(&ink_e2e::alice(), grant_role, 0, None)
+                .await
+                .expect("grant the attestor failed");
+
+            // prepare the meta transaction
+            let data = RollupCondEqMethodParams::encode(&(vec![], vec![], vec![]));
+            let prepare_meta_tx = build_message::<ContractRef>(contract_id.clone())
+                .call(|oracle| oracle.prepare(from, data.clone()));
+            let result = client
+                .call(&ink_e2e::bob(), prepare_meta_tx, 0, None)
+                .await
+                .expect("We should be able to prepare the meta tx");
+
+            let (request, _hash) = result
+                .return_value()
+                .expect("Expected value when preparing meta tx");
+
+            assert_eq!(0, request.nonce);
+            assert_eq!(from, request.from);
+            assert_eq!(contract_id, request.to);
+            assert_eq!(&data, &request.data);
+
+            // Bob signs the message
+            let keypair = subxt_signer::ecdsa::dev::bob();
+            let signature = keypair.sign(&scale::Encode::encode(&request)).0;
+
+            // do the meta tx: charlie sends the message
+            let meta_tx_rollup_cond_eq =
+                build_message::<ContractRef>(contract_id.clone())
+                    .call(|oracle| oracle.meta_tx_rollup_cond_eq(request.clone(), signature));
+            client
+                .call(&ink_e2e::charlie(), meta_tx_rollup_cond_eq, 0, None)
+                .await
+                .expect("meta tx rollup cond eq should not failed");
+
+            // do it again => it must failed
+            let meta_tx_rollup_cond_eq =
+                build_message::<ContractRef>(contract_id.clone())
+                    .call(|oracle| oracle.meta_tx_rollup_cond_eq(request.clone(), signature));
+            let result = client
+                .call(&ink_e2e::charlie(), meta_tx_rollup_cond_eq, 0, None)
+                .await;
+            assert!(
+                result.is_err(),
+                "This message should not be proceed because the nonce is obsolete"
+            );
+
+            Ok(())
+        }
+    }
 
 }

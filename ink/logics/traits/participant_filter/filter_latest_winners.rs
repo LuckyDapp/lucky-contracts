@@ -1,6 +1,11 @@
+use crate::traits::participant_filter::ParticipantFilterError;
 use ink::prelude::collections::vec_deque::VecDeque;
-use openbrush::traits::AccountId;
+use ink::prelude::vec::Vec;
+use openbrush::contracts::access_control::*;
+use openbrush::traits::{AccountId, Storage};
 use phat_rollup_anchor_ink::traits::rollup_anchor::RollupAnchor;
+use scale::Encode;
+
 
 const LAST_WINNERS: u32 = ink::selector_id!("LAST_WINNER");
 
