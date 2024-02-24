@@ -10,7 +10,8 @@ import {
   createVecEncoder,
   decodeStr,
   decodeU32,
-  encodeStr, encodeU128,
+  encodeStr,
+  encodeU128,
   encodeU32,
   WalkerImpl,
 } from "@scale-codec/core";
@@ -31,17 +32,15 @@ const decodeInput = createStructDecoder<Input>([
 
 
 type Output = {
-  //era: number,
-  //nbWinners: number,
+  era: number,
   winners: string[],
-  //rewards: bigint,
+  rewards: bigint,
 }
 
 const encodeOutput = createStructEncoder<Output>([
-  //['era', encodeU32],
-  //['nbWinners', encodeU32],
+  ['era', encodeU32],
   ['winners', createVecEncoder(encodeStr)],
-  //['rewards', encodeU128],
+  ['rewards', encodeU128],
 ]);
 
 enum Error {
@@ -52,7 +51,9 @@ enum Error {
   FailedToFetchParticipant = "FailedToFetchParticipant",
   FailedToDecodeParticipant = "FailedToDecodeParticipant",
   NoMoreParticipant = "NoMoreParticipant",
-  NoWinnerFound = "NoWinnerFound"
+  NoWinnerFound = "NoWinnerFound",
+  NoBlockNumber = "NoBlockNumber",
+  NoPeriod = "NoPeriod"
 }
 
 function isHexString(str: string): boolean {
@@ -69,25 +70,148 @@ function stringToHex(str: string): string {
 }
 
 
+export type EraInfo = {
+  era: number;
+  period: number;
+  subPeriod: string;
+}
 
-function getRewards(graphApi: string, era: number): bigint {
-  let headers = {
+function getEraInfo(graphApi: string, era: number): EraInfo {
+  const headers = {
     "Content-Type": "application/json",
     "User-Agent": "phat-contract",
   };
 
-  let query = JSON.stringify({
+  const query1 = JSON.stringify({
+    query : `query {dAppStakingEras(filter: {era: {equalTo: \"${era}\"}}){nodes{ era, blockNumber}}}`
+  });
+
+  console.log("query1: " + query1);
+
+  const body1 = stringToHex(query1);
+  //
+  // In Phat Function runtime, we not support async/await, you need use `pink.batchHttpRequest` to
+  // send http request. The function will return an array of response.
+  //
+  const response1 = pink.batchHttpRequest(
+      [
+        {
+          url: graphApi,
+          method: "POST",
+          headers,
+          body: body1,
+          returnTextBody: true,
+        },
+      ],
+      10000
+  )[0];
+
+  if (response1.statusCode !== 200) {
+    console.log(
+        `Fail to read Graph api for rewards with status code: ${response1.statusCode}, error: ${
+            response1.error || response1.body
+        }}`
+    );
+    throw Error.FailedToFetchReward;
+  }
+  const respBody1 = response1.body;
+  if (typeof respBody1 !== "string") {
+    throw Error.FailedToDecodeReward;
+  }
+
+  console.log("respBody1: " + respBody1);
+  const node1 = JSON.parse(respBody1).data.dAppStakingEras.nodes[0];
+
+
+  if (node1 == undefined || node1.blockNumber == undefined || node1.blockNumber == 0){
+    console.log(`No Block Number: ${node1}`);
+    throw Error.NoBlockNumber;
+  }
+
+  const blockNumber = node1.blockNumber;
+  console.log('Block Number for era %s: %s', node1.era, blockNumber);
+
+
+  const query2 = JSON.stringify({
+    query : `query {dAppSubPeriods(filter: {blockNumber: {lessThanOrEqualTo: \"${blockNumber}\"}}, first: 1, orderBy: BLOCK_NUMBER_DESC){nodes{ period, subPeriod, blockNumber}}}`
+  });
+
+  console.log("query2: " + query2);
+
+  const body2 = stringToHex(query2);
+  //
+  // In Phat Function runtime, we not support async/await, you need use `pink.batchHttpRequest` to
+  // send http request. The function will return an array of response.
+  //
+  const response2 = pink.batchHttpRequest(
+      [
+        {
+          url: graphApi,
+          method: "POST",
+          headers,
+          body: body2,
+          returnTextBody: true,
+        },
+      ],
+      10000
+  )[0];
+
+  if (response2.statusCode !== 200) {
+    console.log(
+        `Fail to read Graph api for rewards with status code: ${response2.statusCode}, error: ${
+            response2.error || response2.body
+        }}`
+    );
+    throw Error.FailedToFetchReward;
+  }
+  const respBody2 = response2.body;
+  if (typeof respBody2 !== "string") {
+    throw Error.FailedToDecodeReward;
+  }
+
+  console.log("respBody2: " + respBody2);
+  const node2 = JSON.parse(respBody2).data.dAppSubPeriods.nodes[0];
+
+  if (node2 == undefined || node2.period == undefined || node2.period == 0){
+    console.log(`No Period: ${node2}`);
+    throw Error.NoPeriod;
+  }
+
+  const period = node2.period;
+  const subPeriod = node2.subPeriod;
+  console.log('Period %s and sub-period %s for era %s', period, subPeriod, era);
+
+  return {
+    era: era.valueOf(),
+    period,
+    subPeriod
+  };
+}
+
+
+
+
+
+
+
+function getRewards(graphApi: string, era: number): bigint {
+  const headers = {
+    "Content-Type": "application/json",
+    "User-Agent": "phat-contract",
+  };
+
+  const query = JSON.stringify({
     query : `query {dAppRewards(filter: { era: { equalTo: \"${era}\"  } }) {nodes {amount, era}}}`
   });
 
   console.log("query: " + query);
 
-  let body = stringToHex(query);
+  const body = stringToHex(query);
   //
   // In Phat Function runtime, we not support async/await, you need use `pink.batchHttpRequest` to
   // send http request. The function will return an array of response.
   //
-  let response = pink.batchHttpRequest(
+  const response = pink.batchHttpRequest(
       [
         {
           url: graphApi,
@@ -108,7 +232,7 @@ function getRewards(graphApi: string, era: number): bigint {
     );
     throw Error.FailedToFetchReward;
   }
-  let respBody = response.body;
+  const respBody = response.body;
   if (typeof respBody !== "string") {
     throw Error.FailedToDecodeReward;
   }
@@ -136,23 +260,23 @@ interface GetParticipantsQueryResult {
 }
 
 function getParticipants(graphApi: string, period: number, era: number): Participant[] {
-  let headers = {
+  const headers = {
     "Content-Type": "application/json",
     "User-Agent": "phat-contract",
   };
 
-  let query = JSON.stringify({
+  const query = JSON.stringify({
     query : `query { stakes(filter: {and: [ {period: {equalTo: \"${period}\"}}, {era: {lessThan: \"${era}\"}}]}) {groupedAggregates(groupBy: [ACCOUNT_ID], having: { sum: { amount: { notEqualTo: "0" }}}) { sum{amount}, keys }}}`
   });
 
   console.log("query: " + query);
 
-  let body = stringToHex(query);
+  const body = stringToHex(query);
   //
   // In Phat Function runtime, we not support async/await, you need use `pink.batchHttpRequest` to
   // send http request. The function will return an array of response.
   //
-  let response = pink.batchHttpRequest(
+  const response = pink.batchHttpRequest(
       [
         {
           url: graphApi,
@@ -173,13 +297,13 @@ function getParticipants(graphApi: string, period: number, era: number): Partici
     );
     throw Error.FailedToFetchParticipant;
   }
-  let respBody = response.body;
+  const respBody = response.body;
   if (typeof respBody !== "string") {
     throw Error.FailedToDecodeParticipant;
   }
 
   let participants: Participant[] = [];
-  let participantsQueryResult : Array<GetParticipantsQueryResult> = JSON.parse(respBody).data.stakes.groupedAggregates;
+  const participantsQueryResult : Array<GetParticipantsQueryResult> = JSON.parse(respBody).data.stakes.groupedAggregates;
 
   const ticketPrice = BigInt(500000000000000);
 
@@ -244,9 +368,7 @@ function parseInput(hexx: string): Input {
     arr[i++] = parseInt(hex.substring(c, c + 2), 16);
   }
 
-  let input = WalkerImpl.decode(new Uint8Array(arr), decodeInput);
-
-  return input;
+  return WalkerImpl.decode(new Uint8Array(arr), decodeInput);
 }
 
 function formatOutput(output: Output): Uint8Array {
@@ -266,23 +388,23 @@ function formatOutput(output: Output): Uint8Array {
 //            In this example, it's just a simple text of the graph api url.
 //
 // Your returns value MUST be a Uint8Array, and it will send to your contract directly.
-//export default function main(request: HexString, settings: string): Uint8Array {
-export default function main(period: number, era: number, nbWinners: number, excluded: string[], settings: string): Uint8Array {
+export default function main(request: HexString, settings: string): Uint8Array {
+//export default function main(era: number,   nbWinners: number, excluded: string[], settings: string): Uint8Array {
 
-  //console.log(`handle req: ${request}`);
-  console.log(`settings: ${settings}`);
-
-  //let input = parseInput(request);
+  const input = parseInput(request);
   const graphApi = settings;
-  //const era = input.era;
-  //const nbWinners = input.nbWinners;
-  //const excluded = input.excluded;
+  const era = input.era;
+  const nbWinners = input.nbWinners;
+  const excluded = input.excluded;
 
-  console.log(`Request received for period ${period} and era ${era}`);
-  console.log(`Select ${nbWinners} address(es) excluding ${excluded}`);
+  console.log(`Request received for era ${era}`);
   console.log(`Query endpoint ${graphApi}`);
+  console.log(`Select ${nbWinners} address(es) excluding ${excluded}`);
 
   try {
+    const eraInfo = getEraInfo(graphApi, era);
+    const period = eraInfo.period;
+
     const rewards = getRewards(graphApi, era);
     let participants = getParticipants(graphApi, period, era);
     participants =  excludeParticipants(participants, excluded);
@@ -296,17 +418,16 @@ export default function main(period: number, era: number, nbWinners: number, exc
     }
 
     const output: Output = {
-      //era,
-      //nbWinners,
+      era : Number(era.toString()),
       winners,
-      //rewards,
+      rewards : BigInt(rewards.valueOf()),
       //response_value: variant("Some", stats),
       //error: variant('None'),
     }
 
+    console.log(`output - era: ${output.era}`);
     console.log(`output - winners: ${output.winners}`);
-    //console.log(`output - rewards: ${output.rewards}`);
-    console.log(`output - rewards: ${rewards}`);
+    console.log(`output - rewards: ${output.rewards}`);
 
     return formatOutput(output);
   } catch (error) {
