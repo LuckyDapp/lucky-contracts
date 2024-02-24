@@ -52,6 +52,14 @@ mod lucky_raffle {
         core_js: Lazy<CoreJs>,
     }
 
+    #[derive(Encode, Decode)]
+    pub struct Request {
+        era: u32,
+        nb_winners: u32,
+        /// Key for signing the rollup tx.
+        excluded: Vec<String>,
+    }
+
     #[derive(Encode, Decode, Debug, Clone)]
     #[cfg_attr(
         feature = "std",
@@ -100,6 +108,7 @@ mod lucky_raffle {
         FailedToCallRollup,
         JsError(String),
         FailedToDecode,
+        NbWinnersNotSet,
     }
 
     type Result<T> = core::result::Result<T, ContractError>;
@@ -253,32 +262,26 @@ mod lucky_raffle {
             Ok(())
         }
 
-        /// Processes a request by a rollup transaction
-        #[ink(message)]
-        pub fn answer_request(&self) -> Result<Option<Vec<u8>>> {
-            let config = self.ensure_client_configured()?;
-            let mut client = connect(config)?;
+        const NB_WINNERS: u32 = ink::selector_id!("NB_WINNERS");
+        const LAST_WINNERS: u32 = ink::selector_id!("LAST_WINNER");
 
-            // Get a request if presents
-            let request = client
-                .pop_raw()
-                .log_err("answer_request: failed to read queue")?
-                .ok_or(ContractError::NoRequestInQueue)?;
-
-            let response = self.handle_request(&request)?;
-            // Attach an action to the tx by:
-            client.action(Action::Reply(response.encode()));
-
-            maybe_submit_tx(client, &self.attest_key, config.sender_key.as_ref())
-        }
-
-        /// Feed the data
+        /// Run the raffle
         #[ink(message)]
         pub fn run_raffle(&self, era: u32) -> Result<Option<Vec<u8>>> {
             let config = self.ensure_client_configured()?;
             let mut client = connect(config)?;
 
-            let response = self.handle_request(&request)?;
+            let nb_winners = client.get(&Self::NB_WINNERS)
+                .log_err("run raffle: nb winners not set")?
+                .ok_or(ContractError::NbWinnersNotSet)?;
+
+            let excluded = client.get(&Self::LAST_WINNERS)
+                .log_err("run raffle: error when getting excluded addresses")?
+                .ok_or(ContractError::NbWinnersNotSet)?;
+
+            let request = Request {era, nb_winners, excluded };
+
+            let response = self.handle_request(&request.encode())?;
             // Attach an action to the tx by:
             client.action(Action::Reply(response.encode()));
 
@@ -514,13 +517,13 @@ mod lucky_raffle {
 
         #[ink::test]
         #[ignore = "The JS Contract is not accessible inner the test"]
-        fn answer_request() {
+        fn run_raffle() {
             let _ = env_logger::try_init();
             pink_extension_runtime::mock_ext::mock_all_ext();
 
             let oracle = init_contract();
 
-            let r = oracle.answer_request().expect("failed to answer request");
+            let r = oracle.run_raffle(1).expect("failed to run raffle");
             debug_println!("answer request: {r:?}");
         }
     }
