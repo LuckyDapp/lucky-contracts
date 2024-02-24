@@ -1,17 +1,25 @@
 #![cfg_attr(not(feature = "std"), no_std, no_main)]
 
-#[openbrush::implementation(AccessControl)]
+#[openbrush::implementation(Ownable, AccessControl, Upgradeable)]
 #[openbrush::contract]
 pub mod raffle_contract {
+    use ink::codegen::{EmitEvent, Env};
     use ink::env::call::{ExecutionInput, Selector};
     use ink::prelude::vec::Vec;
-    use openbrush::contracts::access_control::{AccessControlError, DEFAULT_ADMIN_ROLE, *};
+    use openbrush::contracts::access_control::*;
+    use openbrush::contracts::ownable::*;
     use openbrush::{modifiers, traits::Storage};
 
     use lucky::traits::{
-        participant_filter::filter_latest_winners, participant_filter::filter_latest_winners::*,
-        participant_manager, participant_manager::*, raffle, raffle::*, random::Random,
-        random::RandomError, random_generator::RandomGeneratorRef,
+        participant_filter::filter_latest_winners,
+        participant_filter::filter_latest_winners::*,
+        raffle, raffle::*,
+    };
+
+    use phat_rollup_anchor_ink::traits::{
+        meta_transaction, meta_transaction::*,
+        rollup_anchor, rollup_anchor::*,
+        js_rollup_anchor, js_rollup_anchor::*,
     };
 
     // Selector of withdraw: "0x410fcc9d"
@@ -28,9 +36,18 @@ pub mod raffle_contract {
         era: u32,
         pending_rewards: Balance,
         nb_winners: u16,
-        nb_participants: u16,
-        total_value: Balance,
     }
+
+    #[ink(event)]
+    pub struct ErrorReceived {
+        /// era requested
+        era: u32,
+        /// error
+        error: Vec<u8>,
+        /// when the error has been received
+        timestamp: u64,
+    }
+
 
     /// Errors occurred in the contract
     #[derive(Debug, Eq, PartialEq, scale::Encode, scale::Decode)]
@@ -38,18 +55,11 @@ pub mod raffle_contract {
     pub enum ContractError {
         AccessControlError(AccessControlError),
         RaffleError(RaffleError),
-        RaffleAlreadyDone,
         CrossContractCallError1,
         CrossContractCallError2,
-        CrossContractCallError2a,
-        CrossContractCallError2b,
         TransferError,
-        UpgradeError,
-        LuckyOracleAddressMissing,
-        RandomGeneratorAddressMissing,
         DappsStakingDeveloperAddressMissing,
         RewardManagerAddressMissing,
-        ParticipantManagerError(ParticipantManagerError),
     }
 
     /// convertor from AccessControlError to ContractError
@@ -67,9 +77,9 @@ pub mod raffle_contract {
     }
 
     /// convertor from RaffleError to ContractError
-    impl From<ParticipantManagerError> for ContractError {
-        fn from(error: ParticipantManagerError) -> Self {
-            ContractError::ParticipantManagerError(error)
+    impl From<ContractError> for RollupAnchorError {
+        fn from(_error: ContractError) -> Self {
+            RollupAnchorError::UnsupportedAction
         }
     }
 
@@ -78,93 +88,65 @@ pub mod raffle_contract {
     #[derive(Default, Storage)]
     pub struct Contract {
         #[storage_field]
-        participant_manager: participant_manager::Data,
-        #[storage_field]
-        raffle: raffle::Data,
+        ownable: ownable::Data,
         #[storage_field]
         access: access_control::Data,
+        #[storage_field]
+        rollup_anchor: rollup_anchor::Data,
+        #[storage_field]
+        meta_transaction: meta_transaction::Data,
+        #[storage_field]
+        js_rollup_anchor: js_rollup_anchor::Data,
+        /// data linked to the dApps
         dapps_staking_developer_address: Option<AccountId>,
-        random_generator_address: Option<AccountId>,
         reward_manager_address: Option<AccountId>,
+        #[storage_field]
+        raffle: raffle::Data,
         #[storage_field]
         filter_latest_winners: filter_latest_winners::Data,
     }
 
-    impl Random for Contract {
-        fn get_random_number(&mut self, min: u128, max: u128) -> Result<u128, RandomError> {
-            // get the random number
-            let random_generator_address = self
-                .random_generator_address
-                .ok_or(RandomError::MissingAddress)?;
-            let random =
-                RandomGeneratorRef::get_random_number(&random_generator_address, min, max)?;
-            Ok(random)
-        }
-    }
-
-    impl ParticipantManager for Contract {}
     impl Raffle for Contract {}
     impl FilterLatestWinners for Contract {}
+    impl RollupAnchor for Contract {}
+    impl MetaTransaction for Contract {}
+    impl JsRollupAnchor for Contract {}
 
     impl Contract {
         #[ink(constructor)]
         pub fn new(
             dapps_staking_developer_address: AccountId,
-            random_generator_address: AccountId,
             reward_manager_address: AccountId,
         ) -> Self {
             let mut instance = Self::default();
             let caller = instance.env().caller();
+            // set the owner of this contract
+            ownable::Internal::_init_with_owner(&mut instance, caller);
+            // set the admin of this contract
             access_control::Internal::_init_with_admin(&mut instance, Some(caller));
-            AccessControl::grant_role(&mut instance, RAFFLE_MANAGER, Some(caller))
-                .expect("Should grant the role RAFFLE_MANAGER");
-            AccessControl::grant_role(&mut instance, PARTICIPANT_MANAGER, Some(caller))
-                .expect("Should grant the role PARTICIPANT_MANAGER");
-            AccessControl::grant_role(&mut instance, PARTICIPANT_FILTER_MANAGER, Some(caller))
-                .expect("Should grant the role PARTICIPANT_FILTER_MANAGER");
+            // grant the role manager
+            AccessControl::grant_role(&mut instance, JS_RA_MANAGER_ROLE, Some(caller))
+                .expect("Should grant the role MANAGER_ROLE");
             instance.dapps_staking_developer_address = Some(dapps_staking_developer_address);
-            instance.random_generator_address = Some(random_generator_address);
             instance.reward_manager_address = Some(reward_manager_address);
             instance
         }
 
-        /// add participants in the raffle and applied the filters
-        /// a participant with a weight higher than another participant will have normally more chance to be selected in the raffle
-        /// weight can represent the number of raffle tickets for this participant.
-        /// weight can also represent the amount staked in dAppStaking, ...
-        #[ink(message)]
-        pub fn add_participants_with_filters(
+        pub fn save_raffle_result(
             &mut self,
-            participants: Vec<(AccountId, Balance)>,
+            era: u32,
+            rewards: Balance,
+            winners: Vec<AccountId>,
         ) -> Result<(), ContractError> {
-            let mut parts = participants.clone();
 
-            let mut i = 0;
-            while i < parts.len() {
-                let p_account_id = parts.get(i).unwrap().0;
-                if self._is_in_last_winners(&p_account_id) {
-                    parts.remove(i);
-                } else {
-                    i += 1;
-                }
-            }
+            let winners_rewards = self.mark_raffle_done(era, rewards, &winners)?;
 
-            self.add_participants(parts)?;
-            Ok(())
-        }
-
-        #[ink(message)]
-        #[modifiers(only_role(RAFFLE_MANAGER))]
-        pub fn run_raffle(&mut self, era: u32, rewards: Balance) -> Result<(), ContractError> {
-            // select the winners
-            // initialize the empty list of randomly selected values
-            let winners = self._run_raffle(era, rewards)?;
-            let nb_winners = winners.len();
+            let nb_winners = winners_rewards.len();
 
             // save the winners
             let mut given_rewards = 0;
-            for winner in &winners {
-                self._add_winner(winner.0);
+            for winner in &winners_rewards {
+                self.add_winner(winner.0);
                 given_rewards += winner.1;
             }
 
@@ -177,7 +159,6 @@ pub mod raffle_contract {
                 .exec_input(ExecutionInput::new(Selector::new(WITHDRAW_SELECTOR)).push_arg(given_rewards))
                 .returns::<()>()
                 .invoke();
-            //.map_err(|_| ContractError::CrossContractCallError1)?;
 
             // set the list of winners and fund the rewards
             let reward_manager_address = self
@@ -189,41 +170,20 @@ pub mod raffle_contract {
                 .exec_input(
                     ExecutionInput::new(Selector::new(FUND_REWARDS_AND_WINNERS_SELECTOR))
                         .push_arg(era)
-                        .push_arg(winners),
+                        .push_arg(winners_rewards),
                 )
                 .returns::<()>()
                 .invoke();
-            //.map_err(|_| ContractError::CrossContractCallError2)?;
-
-            // TODO split rewards given and total rewards
-            let total_value = self.get_total_value();
 
             // emit event RaffleDone
             self.env().emit_event(RaffleDone {
                 contract: self.env().caller(),
                 era,
                 nb_winners: nb_winners as u16,
-                nb_participants: self.get_nb_participants(),
-                total_value,
                 pending_rewards: rewards,
             });
 
             Ok(())
-        }
-
-        #[ink(message)]
-        pub fn get_role_raffle_manager(&self) -> RoleType {
-            RAFFLE_MANAGER
-        }
-
-        #[ink(message)]
-        pub fn get_role_participant_manager(&self) -> RoleType {
-            PARTICIPANT_MANAGER
-        }
-
-        #[ink(message)]
-        pub fn get_role_participant_filter_manager(&self) -> RoleType {
-            PARTICIPANT_FILTER_MANAGER
         }
 
         #[ink(message)]
@@ -243,21 +203,6 @@ pub mod raffle_contract {
 
         #[ink(message)]
         #[modifiers(only_role(DEFAULT_ADMIN_ROLE))]
-        pub fn set_random_generator_address(
-            &mut self,
-            address: AccountId,
-        ) -> Result<(), ContractError> {
-            self.random_generator_address = Some(address);
-            Ok(())
-        }
-
-        #[ink(message)]
-        pub fn get_random_generator_address(&mut self) -> Option<AccountId> {
-            self.random_generator_address
-        }
-
-        #[ink(message)]
-        #[modifiers(only_role(DEFAULT_ADMIN_ROLE))]
         pub fn set_reward_manager_address(
             &mut self,
             address: AccountId,
@@ -269,13 +214,6 @@ pub mod raffle_contract {
         #[ink(message)]
         pub fn get_reward_manager_address(&mut self) -> Option<AccountId> {
             self.reward_manager_address
-        }
-
-        #[ink(message)]
-        #[modifiers(only_role(DEFAULT_ADMIN_ROLE))]
-        pub fn upgrade_contract(&mut self, new_code_hash: Hash) -> Result<(), ContractError> {
-            self.env().set_code_hash(&new_code_hash).map_err(|_| ContractError::UpgradeError)?;
-            Ok(())
         }
 
         #[ink(message)]
@@ -293,5 +231,93 @@ pub mod raffle_contract {
                 .map_err(|_| ContractError::TransferError)?;
             Ok(())
         }
+
+        #[ink(message)]
+        #[modifiers(only_role(DEFAULT_ADMIN_ROLE))]
+        pub fn register_attestor(&mut self, account_id: AccountId) -> Result<(), AccessControlError> {
+            AccessControl::grant_role(self, ATTESTOR_ROLE, Some(account_id))?;
+            Ok(())
+        }
+
+        #[ink(message)]
+        pub fn get_attestor_role(&self) -> RoleType {
+            ATTESTOR_ROLE
+        }
+
     }
+
+    #[derive(scale::Encode, scale::Decode)]
+    pub struct RaffleRequestMessage {
+        era: u32,
+        nb_winners: u32,
+        excluded: Vec<AccountId>,
+    }
+
+    #[derive(scale::Encode, scale::Decode)]
+    pub struct RaffleResponseMessage {
+        era: u32,
+        rewards: Balance,
+        winners: Vec<AccountId>,
+    }
+
+    impl rollup_anchor::MessageHandler for Contract {
+        fn on_message_received(&mut self, action: Vec<u8>) -> Result<(), RollupAnchorError> {
+
+            let response = JsRollupAnchor::on_message_received::<RaffleRequestMessage, RaffleResponseMessage>(self, action)?;
+            match response {
+                MessageReceived::Ok {output} => {
+
+                    let era = output.era;
+                    let rewards = output.rewards;
+                    let winners = output.winners;
+
+                    // register the info
+                    self.save_raffle_result(era, rewards, winners)?;
+
+                }
+                MessageReceived::Error { error, input } => {
+                    // we received an error
+                    let timestamp = self.env().block_timestamp();
+                    self.env().emit_event(ErrorReceived {
+                        era : input.era,
+                        error,
+                        timestamp,
+                    });
+                }
+            }
+
+            Ok(())
+        }
+    }
+
+    impl rollup_anchor::EventBroadcaster for Contract {
+        fn emit_event_message_queued(&self, _id: u32, _data: Vec<u8>) {
+            // no queue here
+        }
+        fn emit_event_message_processed_to(&self, _id: u32) {
+            // no queue here
+        }
+    }
+
+    impl meta_transaction::EventBroadcaster for Contract {
+        fn emit_event_meta_tx_decoded(&self) {
+            // do nothing
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
