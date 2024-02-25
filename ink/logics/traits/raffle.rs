@@ -1,12 +1,12 @@
 use crate::traits::raffle::RaffleError::*;
+use crate::traits::RAFFLE_MANAGER_ROLE;
 use ink::prelude::vec::Vec;
-use openbrush::contracts::access_control::{access_control, AccessControlError, RoleType};
+use openbrush::contracts::access_control::{access_control, AccessControlError};
 use openbrush::traits::{AccountId, Balance, Storage};
 
 use phat_rollup_anchor_ink::traits::rollup_anchor::RollupAnchor;
 use scale::Encode;
 
-pub const RAFFLE_MANAGER: RoleType = ink::selector_id!("RAFFLE_MANAGER");
 const NB_WINNERS: u32 = ink::selector_id!("NB_WINNERS");
 #[derive(Default, Debug)]
 #[openbrush::storage_item]
@@ -24,7 +24,7 @@ pub trait Raffle: Storage<Data> + access_control::Internal + RollupAnchor {
     /// if ratio[n] equals to zero or is empty, tne winner n will receive nothing
     /// Sum(ratio[i]) <= total_ratio. Otherwise teh error IncorrectRatio is expected
     #[ink(message)]
-    #[openbrush::modifiers(access_control::only_role(RAFFLE_MANAGER))]
+    #[openbrush::modifiers(access_control::only_role(RAFFLE_MANAGER_ROLE))]
     fn set_ratio_distribution(
         &mut self,
         ratio: Vec<Balance>,

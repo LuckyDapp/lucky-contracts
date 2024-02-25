@@ -70,9 +70,9 @@ pub mod reward_manager {
             let mut instance = Self::default();
             let caller = instance.env().caller();
             access_control::Internal::_init_with_admin(&mut instance, Some(caller));
-            AccessControl::grant_role(&mut instance, REWARD_MANAGER, Some(caller))
+            AccessControl::grant_role(&mut instance, REWARD_MANAGER_ROLE, Some(caller))
                 .expect("Should grant the role REWARD_MANAGER");
-            AccessControl::grant_role(&mut instance, REWARD_VIEWER, Some(caller))
+            AccessControl::grant_role(&mut instance, REWARD_VIEWER_ROLE, Some(caller))
                 .expect("Should grant the role REWARD_VIEWER");
             instance
         }
@@ -92,12 +92,12 @@ pub mod reward_manager {
 
         #[ink(message)]
         pub fn get_role_reward_manager(&self) -> RoleType {
-            REWARD_MANAGER
+            REWARD_MANAGER_ROLE
         }
 
         #[ink(message)]
         pub fn get_role_reward_viewer(&self) -> RoleType {
-            REWARD_VIEWER
+            REWARD_VIEWER_ROLE
         }
 
         #[ink(message)]

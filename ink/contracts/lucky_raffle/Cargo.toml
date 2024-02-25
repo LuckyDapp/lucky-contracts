@@ -12,13 +12,7 @@ openbrush = { version = "4.0.0-beta", git = "https://github.com/Brushfam/openbru
 lucky = { path = "../../logics", default-features = false }
 reward_manager = { path = "../reward_manager", default-features = false, features = ["ink-as-dependency"] }
 dapps_staking_developer = { path = "../dapps_staking_developer", default-features = false, features = ["ink-as-dependency"] }
-
 phat_rollup_anchor_ink = { git = "https://github.com/GuiGou12358/phat-offchain-rollup" , default-features = false}
-
-[dev-dependencies]
-ink_e2e = { version = "4.3.0" }
-hex-literal = { version = "0.4.1" }
-subxt-signer = { version = "0.31.0" }
 
 [lib]
 path = "lib.rs"
@@ -36,7 +30,6 @@ std = [
     "phat_rollup_anchor_ink/std",
 ]
 ink-as-dependency = []
-e2e-tests = []
 
 [profile.release]
 overflow-checks = false

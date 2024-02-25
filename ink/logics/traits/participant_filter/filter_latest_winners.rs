@@ -1,4 +1,5 @@
 use crate::traits::participant_filter::ParticipantFilterError;
+use crate::traits::RAFFLE_MANAGER_ROLE;
 use ink::prelude::collections::vec_deque::VecDeque;
 use ink::prelude::vec::Vec;
 use openbrush::contracts::access_control::*;
@@ -20,7 +21,7 @@ pub struct Data {
 #[openbrush::trait_definition]
 pub trait FilterLatestWinners: Storage<Data> + access_control::Internal + RollupAnchor {
     #[ink(message)]
-    #[openbrush::modifiers(access_control::only_role(DEFAULT_ADMIN_ROLE))]
+    #[openbrush::modifiers(access_control::only_role(RAFFLE_MANAGER_ROLE))]
     fn set_nb_winners_filtered(
         &mut self,
         nb_filtered_winners: u16,
