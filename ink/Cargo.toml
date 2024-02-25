@@ -4,4 +4,5 @@ members = [
     "contracts/dapps_staking_developer",
     "contracts/reward_manager",
     "contracts/lucky_raffle",
+    "integration_tests",
 ]

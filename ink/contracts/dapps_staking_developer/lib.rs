@@ -8,7 +8,7 @@ pub mod dapps_staking_developer {
     use openbrush::modifiers;
     use openbrush::traits::Storage;
 
-    const WHITELISTED_ADDRESS: RoleType = ink::selector_id!("WHITELISTED_ADDRESS");
+    pub const WHITELISTED_ADDRESS: RoleType = ink::selector_id!("WHITELISTED_ADDRESS");
 
     /// Errors occurred in the contract
     #[derive(Debug, Eq, PartialEq, scale::Encode, scale::Decode)]
@@ -44,6 +44,11 @@ pub mod dapps_staking_developer {
             AccessControl::grant_role(&mut instance, WHITELISTED_ADDRESS, Some(caller))
                 .expect("Should grant the role WHITELISTED_ADDRESS");
             instance
+        }
+
+        #[ink(message, payable)]
+        pub fn fund(&mut self) -> Result<(), ContractError> {
+            Ok(())
         }
 
         #[ink(message, selector = 0x410fcc9d)]
