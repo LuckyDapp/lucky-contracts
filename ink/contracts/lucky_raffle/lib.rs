@@ -40,6 +40,14 @@ pub mod raffle_contract {
     }
 
     #[ink(event)]
+    pub struct RaffleSkipped {
+        #[ink(topic)]
+        contract: AccountId,
+        #[ink(topic)]
+        era: u32,
+    }
+
+    #[ink(event)]
     pub struct ErrorReceived {
         /// era requested
         era: u32,
@@ -79,7 +87,8 @@ pub mod raffle_contract {
 
     /// convertor from RaffleError to ContractError
     impl From<ContractError> for RollupAnchorError {
-        fn from(_error: ContractError) -> Self {
+        fn from(error: ContractError) -> Self {
+            ink::env::debug_println!("Error: {:?}", error);
             RollupAnchorError::UnsupportedAction
         }
     }
@@ -135,14 +144,23 @@ pub mod raffle_contract {
             instance
         }
 
-        pub fn save_raffle_result(
+        pub fn save_response(
             &mut self,
-            era: u32,
-            rewards: Balance,
-            winners: Vec<AccountId>,
+            response: &RaffleResponseMessage,
         ) -> Result<(), ContractError> {
 
-            let winners_rewards = self.mark_raffle_done(era, rewards, &winners)?;
+            if response.skipped {
+                self.skip_raffle(response.era)?;
+                // emit event RaffleSkipped
+                self.env().emit_event(RaffleSkipped {
+                    contract: self.env().caller(),
+                    era: response.era,
+                });
+
+                return Ok(());
+            }
+
+            let winners_rewards = self.mark_raffle_done(response.era, response.rewards, &response.winners)?;
 
             let nb_winners = winners_rewards.len();
 
@@ -172,7 +190,7 @@ pub mod raffle_contract {
                 .transferred_value(given_rewards)
                 .exec_input(
                     ExecutionInput::new(Selector::new(FUND_REWARDS_AND_WINNERS_SELECTOR))
-                        .push_arg(era)
+                        .push_arg(response.era)
                         .push_arg(winners_rewards),
                 )
                 .returns::<()>()
@@ -181,9 +199,9 @@ pub mod raffle_contract {
             // emit event RaffleDone
             self.env().emit_event(RaffleDone {
                 contract: self.env().caller(),
-                era,
+                era: response.era,
                 nb_winners: nb_winners as u16,
-                pending_rewards: rewards,
+                pending_rewards: response.rewards,
             });
 
             Ok(())
@@ -252,13 +270,14 @@ pub mod raffle_contract {
     #[derive(scale::Encode, scale::Decode)]
     pub struct RaffleRequestMessage {
         pub era: u32,
-        pub nb_winners: u32,
+        pub nb_winners: u16,
         pub excluded: Vec<AccountId>,
     }
 
     #[derive(scale::Encode, scale::Decode)]
     pub struct RaffleResponseMessage {
         pub era: u32,
+        pub skipped: bool,
         pub rewards: Balance,
         pub winners: Vec<AccountId>,
     }
@@ -269,13 +288,8 @@ pub mod raffle_contract {
             let response = JsRollupAnchor::on_message_received::<RaffleRequestMessage, RaffleResponseMessage>(self, action)?;
             match response {
                 MessageReceived::Ok {output} => {
-
-                    let era = output.era;
-                    let rewards = output.rewards;
-                    let winners = output.winners;
-
                     // register the info
-                    self.save_raffle_result(era, rewards, winners)?;
+                    self.save_response(&output)?;
 
                 }
                 MessageReceived::Error { error, input } => {
