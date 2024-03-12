@@ -10,7 +10,7 @@ mod lucky_raffle {
     use ink::storage::Lazy;
     use phat_offchain_rollup::clients::ink::{Action, ContractId, InkRollupClient};
     use pink_extension::chain_extension::signing;
-    use pink_extension::{error, ResultExt};
+    use pink_extension::{error, info, ResultExt};
     use scale::{Decode, Encode};
 
     type CodeHash = [u8; 32];
@@ -55,7 +55,7 @@ mod lucky_raffle {
     #[derive(Encode, Decode)]
     pub struct Request {
         era: u32,
-        nb_winners: u32,
+        nb_winners: u16,
         /// Key for signing the rollup tx.
         excluded: Vec<String>,
     }
@@ -277,7 +277,7 @@ mod lucky_raffle {
 
             let excluded = client.get(&Self::LAST_WINNERS)
                 .log_err("run raffle: error when getting excluded addresses")?
-                .ok_or(ContractError::NbWinnersNotSet)?;
+                .unwrap_or_default();
 
             let request = Request {era, nb_winners, excluded };
 
@@ -351,14 +351,46 @@ mod lucky_raffle {
         ///
         /// For dev purpose. (admin only)
         #[ink(message)]
-        pub fn dry_run_js(
+        pub fn dry_run_1(
             &self,
-            js_code: String,
-            request: Vec<u8>,
-            settings: String,
+            era: u32,
+            nb_winners: u16,
+            excluded: Vec<String>,
+        ) -> Result<Vec<u8>> {
+
+            self.ensure_owner()?;
+            self.ensure_client_configured()?;
+            let request = Request {era, nb_winners, excluded };
+            let response = self.handle_request(&request.encode())?;
+            let encoded_response = response.encode();
+            info!("encoded response : {:02x?}", encoded_response);
+            Ok(encoded_response)
+        }
+
+        /// Simulate the js
+        ///
+        /// For dev purpose. (admin only)
+        #[ink(message)]
+        pub fn dry_run_2(
+            &self,
+            era: u32,
         ) -> Result<Vec<u8>> {
             self.ensure_owner()?;
-            self.run_js_inner(&js_code, &request, settings)
+
+            let config = self.ensure_client_configured()?;
+            let mut client = connect(config)?;
+
+            let nb_winners = client.get(&Self::NB_WINNERS)
+                .log_err("run raffle: nb winners not set")?
+                .ok_or(ContractError::NbWinnersNotSet)?;
+            info!("nb_winners : {:?}", nb_winners);
+
+            let excluded = client.get(&Self::LAST_WINNERS)
+                .log_err("run raffle: error when getting excluded addresses")?
+                .unwrap_or_default();
+            info!("excluded : {:?}", nb_winners);
+
+            self.dry_run_1(era, nb_winners, excluded)
         }
 
         /// Returns BadOrigin error if the caller is not the owner
@@ -469,33 +501,6 @@ mod lucky_raffle {
             }
         }
 
-        #[ink::test]
-        fn test_update_attestor_key() {
-            let _ = env_logger::try_init();
-            pink_extension_runtime::mock_ext::mock_all_ext();
-
-            let mut oracle = JsOffchainRollup::default();
-
-            // Secret key and address of Alice in localhost
-            let sk_alice: [u8; 32] = [0x01; 32];
-            let address_alice = hex_literal::hex!(
-                "189dac29296d31814dc8c56cf3d36a0543372bba7538fa322a4aebfebc39e056"
-            );
-
-            let initial_attestor_address = oracle.get_attest_address();
-            assert_ne!(address_alice, initial_attestor_address.as_slice());
-
-            oracle.set_attest_key(Some(sk_alice.into())).unwrap();
-
-            let attestor_address = oracle.get_attest_address();
-            assert_eq!(address_alice, attestor_address.as_slice());
-
-            oracle.set_attest_key(None).unwrap();
-
-            let attestor_address = oracle.get_attest_address();
-            assert_eq!(initial_attestor_address, attestor_address);
-        }
-
         fn init_contract() -> JsOffchainRollup {
             let EnvVars {
                 rpc,
@@ -510,7 +515,7 @@ mod lucky_raffle {
             oracle
                 .config_target_contract(rpc, pallet_id, call_id, contract_id.into(), sender_key)
                 .unwrap();
-            oracle.set_attest_key(Some(attest_key)).unwrap();
+            //oracle.set_attest_key(Some(attest_key)).unwrap();
 
             oracle
         }
@@ -525,6 +530,20 @@ mod lucky_raffle {
 
             let r = oracle.run_raffle(1).expect("failed to run raffle");
             debug_println!("answer request: {r:?}");
+        }
+
+        #[ink::test]
+        fn test_encode_data() {
+            let _ = env_logger::try_init();
+            pink_extension_runtime::mock_ext::mock_all_ext();
+
+            let era = 651;
+            let nb_winners = 2;
+            let excluded = Vec::new();
+
+            let request = Request {era, nb_winners, excluded };
+            let encoded_request = request.encode();
+            debug_println!("encoded request: {encoded_request:02x?}");
         }
     }
 }
