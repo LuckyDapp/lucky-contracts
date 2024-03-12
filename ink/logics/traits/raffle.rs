@@ -41,8 +41,8 @@ pub trait Raffle: Storage<Data> + access_control::Internal + RollupAnchor {
         self.data::<Data>().ratio_distribution = ratio;
         self.data::<Data>().total_ratio_distribution = total_ratio;
 
-        // save the NB WINNERS the kv store
-        let nb_winners: u32 = self.data::<Data>().ratio_distribution.len() as u32;
+        // save the NB WINNERS in the kv store
+        let nb_winners: u16 = self.data::<Data>().ratio_distribution.len() as u16;
         RollupAnchor::set_value(self, &NB_WINNERS.encode(), Some(&nb_winners.encode()));
 
         Ok(())
@@ -59,9 +59,36 @@ pub trait Raffle: Storage<Data> + access_control::Internal + RollupAnchor {
         self.data::<Data>().total_ratio_distribution
     }
 
+
     #[ink(message)]
     fn get_last_era_done(&self) -> u32 {
         self.data::<Data>().last_era_done
+    }
+
+    #[ink(message)]
+    #[openbrush::modifiers(access_control::only_role(RAFFLE_MANAGER_ROLE))]
+    fn set_last_era_done(
+        &mut self,
+        last_era_done: u32,
+    ) -> Result<(), RaffleError> {
+        self.data::<Data>().last_era_done = last_era_done;
+        Ok(())
+    }
+
+
+    fn skip_raffle(
+        &mut self,
+        era: u32,
+    ) -> Result<(), RaffleError> {
+        // check if the raffle has not been done
+        if self.get_last_era_done() != era - 1{
+            return Err(IncorrectEra);
+        }
+
+        // set the raffle is done or skipped
+        self.data::<Data>().last_era_done = era;
+
+        Ok(())
     }
 
     fn mark_raffle_done(
@@ -71,8 +98,8 @@ pub trait Raffle: Storage<Data> + access_control::Internal + RollupAnchor {
         winners: &Vec<AccountId>,
     ) -> Result<Vec<(AccountId, Balance)>, RaffleError> {
         // check if the raffle has not been done
-        if self.get_last_era_done() >= era {
-            return Err(RaffleAlreadyDone);
+        if self.get_last_era_done() != era - 1{
+            return Err(IncorrectEra);
         }
 
         if total_rewards == 0 {
@@ -126,7 +153,7 @@ pub trait Raffle: Storage<Data> + access_control::Internal + RollupAnchor {
 #[derive(Debug, Eq, PartialEq, scale::Encode, scale::Decode)]
 #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
 pub enum RaffleError {
-    RaffleAlreadyDone,
+    IncorrectEra,
     NoReward,
     NoRatioSet,
     IncorrectRatio,
