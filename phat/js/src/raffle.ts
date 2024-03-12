@@ -9,7 +9,9 @@ import {
   createVecDecoder,
   createVecEncoder,
   decodeStr,
+  decodeU16,
   decodeU32,
+  encodeBool,
   encodeStr,
   encodeU128,
   encodeU32,
@@ -26,21 +28,23 @@ type Input = {
 
 const decodeInput = createStructDecoder<Input>([
   ['era', decodeU32],
-  ['nbWinners', decodeU32],
+  ['nbWinners', decodeU16],
   ['excluded', createVecDecoder(decodeStr)],
 ]);
 
 
 type Output = {
   era: number,
-  winners: string[],
+  skipped: boolean,
   rewards: bigint,
+  winners: string[],
 }
 
 const encodeOutput = createStructEncoder<Output>([
   ['era', encodeU32],
-  ['winners', createVecEncoder(encodeStr)],
+  ['skipped', encodeBool],
   ['rewards', encodeU128],
+  ['winners', createVecEncoder(encodeStr)],
 ]);
 
 enum Error {
@@ -399,10 +403,24 @@ export default function main(request: HexString, settings: string): Uint8Array {
 
   console.log(`Request received for era ${era}`);
   console.log(`Query endpoint ${graphApi}`);
-  console.log(`Select ${nbWinners} address(es) excluding ${excluded}`);
+  console.log(`Select ${nbWinners} address(es) excluding [${excluded}]`);
 
   try {
     const eraInfo = getEraInfo(graphApi, era);
+
+    if (eraInfo.subPeriod.toUpperCase() == 'VOTING'){
+      const output: Output = {
+        era : Number(era.toString()),
+        skipped: true,
+        winners: [],
+        rewards : BigInt(0),
+      }
+
+      console.log(`Voting subPeriod for era: ${output.era} => skip the raffle`);
+
+      return formatOutput(output);
+    }
+
     const period = eraInfo.period;
 
     const rewards = getRewards(graphApi, era);
@@ -419,6 +437,7 @@ export default function main(request: HexString, settings: string): Uint8Array {
 
     const output: Output = {
       era : Number(era.toString()),
+      skipped: false,
       winners,
       rewards : BigInt(rewards.valueOf()),
       //response_value: variant("Some", stats),
