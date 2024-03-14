@@ -56,8 +56,7 @@ mod lucky_raffle {
     pub struct Request {
         era: u32,
         nb_winners: u16,
-        /// Key for signing the rollup tx.
-        excluded: Vec<String>,
+        excluded: Vec<AccountId>,
     }
 
     #[derive(Encode, Decode, Debug, Clone)]
@@ -355,7 +354,7 @@ mod lucky_raffle {
             &self,
             era: u32,
             nb_winners: u16,
-            excluded: Vec<String>,
+            excluded: Vec<AccountId>,
         ) -> Result<Vec<u8>> {
 
             self.ensure_owner()?;
@@ -385,7 +384,7 @@ mod lucky_raffle {
                 .ok_or(ContractError::NbWinnersNotSet)?;
             info!("nb_winners : {:?}", nb_winners);
 
-            let excluded = client.get(&Self::LAST_WINNERS)
+            let excluded: Vec<AccountId> = client.get(&Self::LAST_WINNERS)
                 .log_err("run raffle: error when getting excluded addresses")?
                 .unwrap_or_default();
             info!("excluded : {:?}", nb_winners);
