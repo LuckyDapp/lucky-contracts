@@ -2,10 +2,10 @@
   "name": "lucky",
   "version": "2.0.0",
   "scripts": {
-    "build-function-raffle": "phat-fn build src/raffle.ts",
-    "run-function-raffle": "phat-fn run dist/raffle.js",
+    "build-raffle": "phat-fn build src/raffle.ts",
     "test-do-raffle": "phat-fn run dist/raffle.js -a 0x8d020000020000 https://query.substrate.fi/lucky-subquery-astar",
-    "test-skip-raffle": "phat-fn run dist/raffle.js -a 0x8b020000020000 https://query.substrate.fi/lucky-subquery-astar"
+    "test-skip-raffle": "phat-fn run dist/raffle.js -a 0x8b020000020000 https://query.substrate.fi/lucky-subquery-astar",
+    "test-raffle": "phat-fn run dist/raffle.js -a 0xa5110000020008bc614347397a3458635a72535566727a756155595777784b72754136726e41387a39774d635a74445145665052514c48bc58767958585571455558696142313139576b32513871375451444e524a4a6236515055456f416256334234414d4141 https://query.substrate.fi/lucky-subquery-shibuya"
   },
   "devDependencies": {
     "@types/node": ">=12.0.0",
