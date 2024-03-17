@@ -109,10 +109,10 @@ mod e2e_tests {
             .await
             .expect("set ratio distribution failed");
 
-        let set_last_era_done = build_message::<raffle_contract::ContractRef>(contracts.lucky_raffle_account_id.clone())
-            .call(|contract| contract.set_last_era_done(12));
+        let set_next_era = build_message::<raffle_contract::ContractRef>(contracts.lucky_raffle_account_id.clone())
+            .call(|contract| contract.set_next_era(13));
         client
-            .call(&ink_e2e::alice(), set_last_era_done, 0, None)
+            .call(&ink_e2e::alice(), set_next_era, 0, None)
             .await
             .expect("set last era failed");
     }
@@ -211,12 +211,13 @@ mod e2e_tests {
         let rollup_cond_eq = build_message::<raffle_contract::ContractRef>(contract_id.clone())
             .call(|oracle| oracle.rollup_cond_eq(vec![], vec![], actions.clone()));
 
-        /*
+/*
         let result = client
             .call_dry_run(&ink_e2e::bob(), &rollup_cond_eq, 0, None)
             .await;
         assert_eq!(result.debug_message(), "e");
-        */
+ */
+
         let result = client
             .call(&ink_e2e::bob(), rollup_cond_eq, 0, None)
             .await
@@ -234,14 +235,15 @@ mod e2e_tests {
         );
 
         // and check if the data is filled
-        let get_last_era_done = build_message::<raffle_contract::ContractRef>(contract_id.clone())
-            .call(|contract| contract.get_last_era_done());
-        let last_era_done = client
-            .call_dry_run(&ink_e2e::charlie(), &get_last_era_done, 0, None)
+        let get_next_era = build_message::<raffle_contract::ContractRef>(contract_id.clone())
+            .call(|contract| contract.get_next_era());
+        let next_era = client
+            .call_dry_run(&ink_e2e::charlie(), &get_next_era, 0, None)
             .await
-            .return_value();
+            .return_value()
+            .expect("next era failed");
 
-        assert_eq!(13, last_era_done);
+        assert_eq!(14, next_era);
 
         // check the balance of the developer contract
         let dev_contract_balance = client
@@ -349,14 +351,15 @@ mod e2e_tests {
         assert!(result.contains_event("Contracts", "ContractEmitted"));
 
         // and check if the data is filled
-        let get_last_era_done = build_message::<raffle_contract::ContractRef>(contract_id.clone())
-            .call(|contract| contract.get_last_era_done());
-        let last_era_done = client
-            .call_dry_run(&ink_e2e::charlie(), &get_last_era_done, 0, None)
+        let get_next_era = build_message::<raffle_contract::ContractRef>(contract_id.clone())
+            .call(|contract| contract.get_next_era());
+        let next_era = client
+            .call_dry_run(&ink_e2e::charlie(), &get_next_era, 0, None)
             .await
-            .return_value();
+            .return_value()
+            .expect("next era failed");
 
-        assert_eq!(13, last_era_done);
+        assert_eq!(14, next_era);
 
         // test wrong era => meaning only 1 raffle by era
         let rollup_cond_eq = build_message::<raffle_contract::ContractRef>(contract_id.clone())
