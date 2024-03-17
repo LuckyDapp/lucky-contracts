@@ -90,7 +90,7 @@ function getEraInfo(graphApi: string, era: number): EraInfo {
     query : `query {dAppStakingEras(filter: {era: {equalTo: \"${era}\"}}){nodes{ era, blockNumber}}}`
   });
 
-  console.log("query1: " + query1);
+  //console.log("query1: " + query1);
 
   const body1 = stringToHex(query1);
   //
@@ -123,7 +123,7 @@ function getEraInfo(graphApi: string, era: number): EraInfo {
     throw Error.FailedToDecodeReward;
   }
 
-  console.log("respBody1: " + respBody1);
+  //console.log("respBody1: " + respBody1);
   const node1 = JSON.parse(respBody1).data.dAppStakingEras.nodes[0];
 
 
@@ -140,7 +140,7 @@ function getEraInfo(graphApi: string, era: number): EraInfo {
     query : `query {dAppSubPeriods(filter: {blockNumber: {lessThanOrEqualTo: \"${blockNumber}\"}}, first: 1, orderBy: BLOCK_NUMBER_DESC){nodes{ period, subPeriod, blockNumber}}}`
   });
 
-  console.log("query2: " + query2);
+  //console.log("query2: " + query2);
 
   const body2 = stringToHex(query2);
   //
@@ -173,7 +173,7 @@ function getEraInfo(graphApi: string, era: number): EraInfo {
     throw Error.FailedToDecodeReward;
   }
 
-  console.log("respBody2: " + respBody2);
+  //console.log("respBody2: " + respBody2);
   const node2 = JSON.parse(respBody2).data.dAppSubPeriods.nodes[0];
 
   if (node2 == undefined || node2.period == undefined || node2.period == 0){
@@ -193,11 +193,6 @@ function getEraInfo(graphApi: string, era: number): EraInfo {
 }
 
 
-
-
-
-
-
 function getRewards(graphApi: string, era: number): bigint {
   const headers = {
     "Content-Type": "application/json",
@@ -208,7 +203,7 @@ function getRewards(graphApi: string, era: number): bigint {
     query : `query {dAppRewards(filter: { era: { equalTo: \"${era}\"  } }) {nodes {amount, era}}}`
   });
 
-  console.log("query: " + query);
+  //console.log("query: " + query);
 
   const body = stringToHex(query);
   //
@@ -241,7 +236,7 @@ function getRewards(graphApi: string, era: number): bigint {
     throw Error.FailedToDecodeReward;
   }
 
-  console.log("respBody: " + respBody);
+  //console.log("respBody: " + respBody);
   const node = JSON.parse(respBody).data.dAppRewards.nodes[0];
 
   if (node == undefined || node.amount == undefined || node.amount == 0){
@@ -273,7 +268,7 @@ function getParticipants(graphApi: string, period: number, era: number): Partici
     query : `query { stakes(filter: {and: [ {period: {equalTo: \"${period}\"}}, {era: {lessThan: \"${era}\"}}]}) {groupedAggregates(groupBy: [ACCOUNT_ID], having: { sum: { amount: { notEqualTo: "0" }}}) { sum{amount}, keys }}}`
   });
 
-  console.log("query: " + query);
+  //console.log("query: " + query);
 
   const body = stringToHex(query);
   //
@@ -326,7 +321,6 @@ function getParticipants(graphApi: string, period: number, era: number): Partici
 
 }
 
-
 function excludeParticipants(participants: Participant[], excluded: string[]): Participant[] {
   if (excluded == undefined){
     return participants;
@@ -363,6 +357,7 @@ function parseInput(hexx: string): Input {
   if (!isHexString(hex)) {
     throw Error.FailedToDecodeInput;
   }
+
   hex = hex.slice(2);
 
   let arr = new Array<number>();
@@ -393,17 +388,17 @@ function formatOutput(output: Output): Uint8Array {
 //
 // Your returns value MUST be a Uint8Array, and it will send to your contract directly.
 export default function main(request: HexString, settings: string): Uint8Array {
-//export default function main(era: number,   nbWinners: number, excluded: string[], settings: string): Uint8Array {
 
+  console.log(`Request : ${request}`);
   const input = parseInput(request);
-  const graphApi = settings;
   const era = input.era;
   const nbWinners = input.nbWinners;
   const excluded = input.excluded;
 
-  console.log(`Request received for era ${era}`);
-  console.log(`Query endpoint ${graphApi}`);
-  console.log(`Select ${nbWinners} address(es) excluding [${excluded}]`);
+  console.log(`Era ${era} - select ${nbWinners} address(es) excluding [${excluded}]`);
+  console.log(`Settings: ${settings}`);
+
+  const graphApi = settings;
 
   try {
     const eraInfo = getEraInfo(graphApi, era);
@@ -440,13 +435,10 @@ export default function main(request: HexString, settings: string): Uint8Array {
       skipped: false,
       winners,
       rewards : BigInt(rewards.valueOf()),
-      //response_value: variant("Some", stats),
-      //error: variant('None'),
     }
 
-    console.log(`output - era: ${output.era}`);
-    console.log(`output - winners: ${output.winners}`);
-    console.log(`output - rewards: ${output.rewards}`);
+    console.log(`winners: ${output.winners}`);
+    console.log(`Rewards: ${output.rewards}`);
 
     return formatOutput(output);
   } catch (error) {
