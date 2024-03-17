@@ -279,7 +279,7 @@ mod dapp_staking {
 
             let contract = init_contract();
 
-            let r = contract.claim_dapp_rewards(4517).expect("failed to answer request");
+            let r = contract.claim_dapp_rewards(4520).expect("failed to answer request");
             debug_println!("answer request: {r:?}");
         }
     }
