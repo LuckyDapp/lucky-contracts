@@ -6,10 +6,9 @@ extern crate core;
 #[ink::contract(env = pink_extension::PinkEnvironment)]
 mod dapp_staking {
 
-    use alloc::{string::String, string::ToString, vec::Vec};
-    use ink::env::debug_println;
+    use alloc::{string::String, vec::Vec};
     use pink_extension::chain_extension::signing;
-    use pink_extension::{error, ResultExt};
+    use pink_extension::{error};
     use scale::{Decode, Encode};
 
 
@@ -33,6 +32,8 @@ mod dapp_staking {
         owner: AccountId,
         /// config to send the data to the ink! smart contract
         config: Option<Config>,
+        /// Key for signing the tx if no sender key is defined in the config
+        private_key: [u8; 32],
     }
 
     #[derive(Encode, Decode, Debug)]
@@ -80,6 +81,7 @@ mod dapp_staking {
             Self {
                 owner: Self::env().caller(),
                 config: None,
+                private_key: private_key[..32].try_into().expect("Invalid Key Length"),
             }
         }
 
@@ -89,18 +91,26 @@ mod dapp_staking {
             self.owner
         }
 
-        /// Gets the sender address used by this rollup (in case of meta-transaction)
+        /// Gets the sender address used by this rollup
         #[ink(message)]
-        pub fn get_sender_address(&self) -> Option<Vec<u8>> {
+        pub fn get_sender_address(&self) -> Vec<u8>{
             if let Some(Some(sender_key)) = self.config.as_ref().map(|c| c.sender_key.as_ref()) {
-                let sender_key = signing::get_public_key(sender_key, signing::SigType::Sr25519);
-                Some(sender_key)
+                signing::get_public_key(sender_key, signing::SigType::Sr25519)
             } else {
-                None
+                signing::get_public_key(&self.private_key, signing::SigType::Sr25519)
             }
         }
 
-        /// Configures the target consumer contract (admin only)
+        /// Gets the config for the call
+        #[ink(message)]
+        pub fn get_call(&self) -> Option<(String, u8, u8, AccountId)> {
+            self.config
+                .as_ref()
+                .map(|c| (c.rpc.clone(), c.pallet_id, c.call_id, c.smart_contract))
+        }
+
+
+        /// Configures the call (admin only)
         #[ink(message)]
         pub fn config_call(
             &mut self,
@@ -141,11 +151,11 @@ mod dapp_staking {
                 smart_contract: SmartContract::Wasm(config.smart_contract),
                 era,
             };
-            debug_println!("data : {:0x?}", data);
-            debug_println!("encoded data : {:0x?}", data.encode());
+
+            let sender_key = config.sender_key.unwrap_or(self.private_key);
 
             let signed_tx = subrpc::create_transaction(
-                &config.sender_key.unwrap(),
+                &sender_key,
                 "astar",
                 &config.rpc,
                 config.pallet_id,
@@ -153,11 +163,6 @@ mod dapp_staking {
                 data,
                 subrpc::ExtraParam::default(),
             )?;
-
-            debug_println!("config.rpc : {:?}", config.rpc);
-            debug_println!("config.pallet_id : {:?}", config.pallet_id);
-            debug_println!("config.call_id : {:?}", config.call_id);
-            debug_println!("signed_tx : {:0x?}", signed_tx);
 
             let tx_id = subrpc::send_transaction(&config.rpc, &signed_tx)?;
 
@@ -225,35 +230,6 @@ mod dapp_staking {
                 signer_key,
             }
         }
-/*
-        #[ink::test]
-        fn test_update_attestor_key() {
-            let _ = env_logger::try_init();
-            pink_extension_runtime::mock_ext::mock_all_ext();
-
-            let mut oracle = JsOffchainRollup::default();
-
-            // Secret key and address of Alice in localhost
-            let sk_alice: [u8; 32] = [0x01; 32];
-            let address_alice = hex_literal::hex!(
-                "189dac29296d31814dc8c56cf3d36a0543372bba7538fa322a4aebfebc39e056"
-            );
-
-            let initial_attestor_address = oracle.get_attest_address();
-            assert_ne!(address_alice, initial_attestor_address.as_slice());
-
-            oracle.set_attest_key(Some(sk_alice.into())).unwrap();
-
-            let attestor_address = oracle.get_attest_address();
-            assert_eq!(address_alice, attestor_address.as_slice());
-
-            oracle.set_attest_key(None).unwrap();
-
-            let attestor_address = oracle.get_attest_address();
-            assert_eq!(initial_attestor_address, attestor_address);
-        }
-
- */
 
         fn init_contract() -> DappStaking {
             let EnvVars {
@@ -279,7 +255,7 @@ mod dapp_staking {
 
             let contract = init_contract();
 
-            let r = contract.claim_dapp_rewards(4520).expect("failed to answer request");
+            let r = contract.claim_dapp_rewards(4522).expect("failed to answer request");
             debug_println!("answer request: {r:?}");
         }
     }
