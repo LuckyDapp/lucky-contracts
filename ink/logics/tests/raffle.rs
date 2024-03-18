@@ -95,7 +95,7 @@ pub mod raffle {
             }
 
             // transfer the rewards and the winners
-            ink::env::pay_with_call!( self.fund_rewards_and_add_winners(era, winners), rewards)?;
+            ink::env::pay_with_call!(self.fund_rewards_and_add_winners(era, winners), rewards)?;
 
             Ok(())
         }

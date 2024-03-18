@@ -5,7 +5,6 @@ use openbrush::contracts::access_control::{access_control, AccessControlError};
 use openbrush::traits::{AccountId, Balance, Storage};
 use scale::Decode;
 
-
 use phat_rollup_anchor_ink::traits::rollup_anchor::RollupAnchor;
 use scale::Encode;
 
@@ -63,38 +62,26 @@ pub trait Raffle: Storage<Data> + access_control::Internal + RollupAnchor {
         self.data::<Data>().total_ratio_distribution
     }
 
-
     #[ink(message)]
     fn get_next_era(&self) -> Result<u32, RaffleError> {
         match RollupAnchor::get_value(self, NEXT_ERA.encode()) {
-            Some(v) => u32::decode(&mut v.as_slice())
-                .map_err(|_| RaffleError::FailedToDecode),
+            Some(v) => u32::decode(&mut v.as_slice()).map_err(|_| RaffleError::FailedToDecode),
             _ => Ok(0),
         }
     }
 
     #[ink(message)]
     #[openbrush::modifiers(access_control::only_role(RAFFLE_MANAGER_ROLE))]
-    fn set_next_era(
-        &mut self,
-        next_era: u32,
-    ) -> Result<(), RaffleError> {
+    fn set_next_era(&mut self, next_era: u32) -> Result<(), RaffleError> {
         self.inner_set_next_era(next_era)
     }
 
-    fn inner_set_next_era(
-        &mut self,
-        next_era: u32,
-    ) -> Result<(), RaffleError> {
+    fn inner_set_next_era(&mut self, next_era: u32) -> Result<(), RaffleError> {
         RollupAnchor::set_value(self, &NEXT_ERA.encode(), Some(&next_era.encode()));
         Ok(())
     }
 
-
-    fn skip_raffle(
-        &mut self,
-        era: u32,
-    ) -> Result<(), RaffleError> {
+    fn skip_raffle(&mut self, era: u32) -> Result<(), RaffleError> {
         // check if the raffle has not been done
         if self.get_next_era()? != era {
             return Err(IncorrectEra);

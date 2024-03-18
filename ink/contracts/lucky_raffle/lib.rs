@@ -11,16 +11,13 @@ pub mod raffle_contract {
     use openbrush::{modifiers, traits::Storage};
 
     use lucky::traits::{
-        RAFFLE_MANAGER_ROLE,
-        participant_filter::filter_latest_winners,
-        participant_filter::filter_latest_winners::*,
-        raffle, raffle::*,
+        participant_filter::filter_latest_winners, participant_filter::filter_latest_winners::*,
+        raffle, raffle::*, RAFFLE_MANAGER_ROLE,
     };
 
     use phat_rollup_anchor_ink::traits::{
-        meta_transaction, meta_transaction::*,
+        js_rollup_anchor, js_rollup_anchor::*, meta_transaction, meta_transaction::*,
         rollup_anchor, rollup_anchor::*,
-        js_rollup_anchor, js_rollup_anchor::*,
     };
 
     // Selector of withdraw: "0x410fcc9d"
@@ -56,7 +53,6 @@ pub mod raffle_contract {
         /// when the error has been received
         timestamp: u64,
     }
-
 
     /// Errors occurred in the contract
     #[derive(Debug, Eq, PartialEq, scale::Encode, scale::Decode)]
@@ -148,7 +144,6 @@ pub mod raffle_contract {
             &mut self,
             response: &RaffleResponseMessage,
         ) -> Result<(), ContractError> {
-
             if response.skipped {
                 self.skip_raffle(response.era)?;
                 // emit event RaffleSkipped
@@ -160,7 +155,8 @@ pub mod raffle_contract {
                 return Ok(());
             }
 
-            let winners_rewards = self.mark_raffle_done(response.era, response.rewards, &response.winners)?;
+            let winners_rewards =
+                self.mark_raffle_done(response.era, response.rewards, &response.winners)?;
 
             let nb_winners = winners_rewards.len();
 
@@ -177,7 +173,9 @@ pub mod raffle_contract {
                 .ok_or(ContractError::DappsStakingDeveloperAddressMissing)?;
             ink::env::call::build_call::<Environment>()
                 .call(dapps_staking_developer_address)
-                .exec_input(ExecutionInput::new(Selector::new(WITHDRAW_SELECTOR)).push_arg(given_rewards))
+                .exec_input(
+                    ExecutionInput::new(Selector::new(WITHDRAW_SELECTOR)).push_arg(given_rewards),
+                )
                 .returns::<()>()
                 .invoke();
 
@@ -255,7 +253,10 @@ pub mod raffle_contract {
 
         #[ink(message)]
         #[modifiers(only_role(DEFAULT_ADMIN_ROLE))]
-        pub fn register_attestor(&mut self, account_id: AccountId) -> Result<(), AccessControlError> {
+        pub fn register_attestor(
+            &mut self,
+            account_id: AccountId,
+        ) -> Result<(), AccessControlError> {
             AccessControl::grant_role(self, ATTESTOR_ROLE, Some(account_id))?;
             Ok(())
         }
@@ -264,7 +265,6 @@ pub mod raffle_contract {
         pub fn get_attestor_role(&self) -> RoleType {
             ATTESTOR_ROLE
         }
-
     }
 
     #[derive(scale::Encode, scale::Decode)]
@@ -284,19 +284,20 @@ pub mod raffle_contract {
 
     impl rollup_anchor::MessageHandler for Contract {
         fn on_message_received(&mut self, action: Vec<u8>) -> Result<(), RollupAnchorError> {
-
-            let response = JsRollupAnchor::on_message_received::<RaffleRequestMessage, RaffleResponseMessage>(self, action)?;
+            let response = JsRollupAnchor::on_message_received::<
+                RaffleRequestMessage,
+                RaffleResponseMessage,
+            >(self, action)?;
             match response {
-                MessageReceived::Ok {output} => {
+                MessageReceived::Ok { output } => {
                     // register the info
                     self.save_response(&output)?;
-
                 }
                 MessageReceived::Error { error, input } => {
                     // we received an error
                     let timestamp = self.env().block_timestamp();
                     self.env().emit_event(ErrorReceived {
-                        era : input.era,
+                        era: input.era,
                         error,
                         timestamp,
                     });
@@ -321,5 +322,4 @@ pub mod raffle_contract {
             // do nothing
         }
     }
-
 }

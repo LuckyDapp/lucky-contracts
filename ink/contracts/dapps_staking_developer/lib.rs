@@ -64,7 +64,9 @@ pub mod dapps_staking_developer {
         #[ink(message)]
         #[modifiers(only_role(DEFAULT_ADMIN_ROLE))]
         pub fn upgrade_contract(&mut self, new_code_hash: Hash) -> Result<(), ContractError> {
-            self.env().set_code_hash(&new_code_hash).map_err(|_| ContractError::UpgradeError)?;
+            self.env()
+                .set_code_hash(&new_code_hash)
+                .map_err(|_| ContractError::UpgradeError)?;
             Ok(())
         }
 

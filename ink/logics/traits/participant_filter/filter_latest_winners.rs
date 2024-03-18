@@ -7,7 +7,6 @@ use openbrush::traits::{AccountId, Storage};
 use phat_rollup_anchor_ink::traits::rollup_anchor::RollupAnchor;
 use scale::Encode;
 
-
 const LAST_WINNERS: u32 = ink::selector_id!("LAST_WINNER");
 
 #[derive(Default, Debug)]
