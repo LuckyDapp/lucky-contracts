@@ -12,7 +12,7 @@ mod lucky_raffle {
     use pink_extension::chain_extension::signing;
     use pink_extension::{error, info, ResultExt};
     use scale::{Decode, Encode};
-    use sp_core::crypto::{AccountId32, Ss58Codec, Ss58AddressFormatRegistry};
+    use sp_core::crypto::{AccountId32, Ss58AddressFormatRegistry, Ss58Codec};
 
     type CodeHash = [u8; 32];
 
@@ -109,7 +109,7 @@ mod lucky_raffle {
         JsError(String),
         FailedToDecode,
         NbWinnersNotSet,
-        NextEraUnknown
+        NextEraUnknown,
     }
 
     type Result<T> = core::result::Result<T, ContractError>;
@@ -273,20 +273,27 @@ mod lucky_raffle {
             let config = self.ensure_client_configured()?;
             let mut client = connect(config)?;
 
-            let era = client.get(&Self::NEXT_ERA)
+            let era = client
+                .get(&Self::NEXT_ERA)
                 .log_err("run raffle: next era unknown")?
                 .ok_or(ContractError::NextEraUnknown)?;
 
-            let nb_winners = client.get(&Self::NB_WINNERS)
+            let nb_winners = client
+                .get(&Self::NB_WINNERS)
                 .log_err("run raffle: nb winners not set")?
                 .ok_or(ContractError::NbWinnersNotSet)?;
 
-            let excluded : Vec<AccountId> = client.get(&Self::LAST_WINNERS)
+            let excluded: Vec<AccountId> = client
+                .get(&Self::LAST_WINNERS)
                 .log_err("run raffle: error when getting excluded addresses")?
                 .unwrap_or_default();
             let formatted_excluded = excluded.iter().map(format_address).collect();
 
-            let request = Request {era, nb_winners, excluded: formatted_excluded };
+            let request = Request {
+                era,
+                nb_winners,
+                excluded: formatted_excluded,
+            };
 
             let response = self.handle_request(&request.encode())?;
             // Attach an action to the tx by:
@@ -297,7 +304,6 @@ mod lucky_raffle {
 
         /// Processes a request with the the core js and returns the response.
         fn handle_request(&self, request: &[u8]) -> Result<ResponseMessage> {
-
             let Some(CoreJs {
                 script,
                 code_hash,
@@ -350,11 +356,14 @@ mod lucky_raffle {
             nb_winners: u16,
             excluded: Vec<AccountId>,
         ) -> Result<Vec<u8>> {
-
             self.ensure_owner()?;
             self.ensure_client_configured()?;
             let formatted_excluded = excluded.iter().map(format_address).collect();
-            let request = Request {era, nb_winners, excluded: formatted_excluded };
+            let request = Request {
+                era,
+                nb_winners,
+                excluded: formatted_excluded,
+            };
             let response = self.handle_request(&request.encode())?;
             let encoded_response = response.encode();
             info!("encoded response : {:02x?}", encoded_response);
@@ -365,24 +374,25 @@ mod lucky_raffle {
         ///
         /// For dev purpose. (admin only)
         #[ink(message)]
-        pub fn dry_run(
-            &self,
-        ) -> Result<Vec<u8>> {
+        pub fn dry_run(&self) -> Result<Vec<u8>> {
             self.ensure_owner()?;
 
             let config = self.ensure_client_configured()?;
             let mut client = connect(config)?;
 
-            let era = client.get(&Self::NEXT_ERA)
+            let era = client
+                .get(&Self::NEXT_ERA)
                 .log_err("run raffle: next era unknown")?
                 .ok_or(ContractError::NextEraUnknown)?;
 
-            let nb_winners = client.get(&Self::NB_WINNERS)
+            let nb_winners = client
+                .get(&Self::NB_WINNERS)
                 .log_err("run raffle: nb winners not set")?
                 .ok_or(ContractError::NbWinnersNotSet)?;
             info!("nb_winners : {:?}", nb_winners);
 
-            let excluded: Vec<AccountId> = client.get(&Self::LAST_WINNERS)
+            let excluded: Vec<AccountId> = client
+                .get(&Self::LAST_WINNERS)
                 .log_err("run raffle: error when getting excluded addresses")?
                 .unwrap_or_default();
             info!("excluded : {:?}", excluded);
@@ -453,12 +463,10 @@ mod lucky_raffle {
     }
 
     fn format_address(address: &AccountId) -> String {
-        let address_hex : [u8; 32]  = address.encode()
-            .try_into()
-            .expect("incorrect length");
-        AccountId32::from(address_hex).to_ss58check_with_version(Ss58AddressFormatRegistry::AstarAccount.into())
+        let address_hex: [u8; 32] = address.encode().try_into().expect("incorrect length");
+        AccountId32::from(address_hex)
+            .to_ss58check_with_version(Ss58AddressFormatRegistry::AstarAccount.into())
     }
-
 
     #[cfg(test)]
     mod tests {
@@ -537,20 +545,23 @@ mod lucky_raffle {
             debug_println!("answer request: {r:?}");
         }
 
-
         #[ink::test]
         fn test_format_address() {
             let _ = env_logger::try_init();
             pink_extension_runtime::mock_ext::mock_all_ext();
 
-            let address_hex : [u8; 32] = hex::decode("bc5a6b58324a633175374b57464a42357476554b3364774e4673454132436e66")
-                .expect("hex decode failed")
-                .try_into()
-                .expect("incorrect length");
+            let address_hex: [u8; 32] =
+                hex::decode("bc5a6b58324a633175374b57464a42357476554b3364774e4673454132436e66")
+                    .expect("hex decode failed")
+                    .try_into()
+                    .expect("incorrect length");
             let address = AccountId::from(address_hex);
 
             let astar_address = format_address(&address);
-            assert_eq!(astar_address, "aCG9z4XcZrSUfrzuaUYWwxKruA6rnA8z9wMcZtDQEfPRQLH")
+            assert_eq!(
+                astar_address,
+                "aCG9z4XcZrSUfrzuaUYWwxKruA6rnA8z9wMcZtDQEfPRQLH"
+            )
         }
 
         #[ink::test]
@@ -561,25 +572,31 @@ mod lucky_raffle {
             let era = 4517;
             let nb_winners = 2;
             let mut excluded = Vec::new();
-            let address1_hex : [u8; 32] = hex::decode("bc5a6b58324a633175374b57464a42357476554b3364774e4673454132436e66")
-                .expect("hex decode failed")
-                .try_into()
-                .expect("incorrect length");
+            let address1_hex: [u8; 32] =
+                hex::decode("bc5a6b58324a633175374b57464a42357476554b3364774e4673454132436e66")
+                    .expect("hex decode failed")
+                    .try_into()
+                    .expect("incorrect length");
             let address1 = AccountId::from(address1_hex);
             let astar_address1 = format_address(&address1);
             debug_println!("astar_address1: {astar_address1}");
             excluded.push(astar_address1);
 
-            let address2_hex : [u8; 32] = hex::decode("58394b6558656a61374862335676734bbc5a534c34584b436a6a6f6265507065")
-                .expect("hex decode failed")
-                .try_into()
-                .expect("incorrect length");
+            let address2_hex: [u8; 32] =
+                hex::decode("58394b6558656a61374862335676734bbc5a534c34584b436a6a6f6265507065")
+                    .expect("hex decode failed")
+                    .try_into()
+                    .expect("incorrect length");
             let address2 = AccountId::from(address2_hex);
             let astar_address2 = format_address(&address2);
             debug_println!("astar_address2: {astar_address2}");
             excluded.push(astar_address2);
 
-            let request = Request {era, nb_winners, excluded };
+            let request = Request {
+                era,
+                nb_winners,
+                excluded,
+            };
             let encoded_request = request.encode();
             debug_println!("encoded request: {encoded_request:02x?}");
         }
