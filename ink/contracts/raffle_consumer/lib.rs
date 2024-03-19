@@ -2,7 +2,7 @@
 
 #[openbrush::implementation(Ownable, AccessControl, Upgradeable)]
 #[openbrush::contract]
-pub mod raffle_contract {
+pub mod raffle_consumer {
     use ink::codegen::{EmitEvent, Env};
     use ink::env::call::{ExecutionInput, Selector};
     use ink::prelude::vec::Vec;
@@ -22,7 +22,7 @@ pub mod raffle_contract {
 
     // Selector of withdraw: "0x410fcc9d"
     const WITHDRAW_SELECTOR: [u8; 4] = [0x41, 0x0f, 0xcc, 0x9d];
-    // Selector of Psp22Reward::fund_rewards_and_add_winners": ""0xc218e5ba
+    // Selector of Psp22Reward::fund_rewards_and_add_winners": "0xc218e5ba"
     const FUND_REWARDS_AND_WINNERS_SELECTOR: [u8; 4] = [0xc2, 0x18, 0xe5, 0xba];
 
     /// Event emitted when the Rafle is done

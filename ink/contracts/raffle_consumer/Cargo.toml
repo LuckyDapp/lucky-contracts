@@ -1,5 +1,5 @@
 [package]
-name = "lucky_raffle"
+name = "raffle_consumer"
 version = "1.0.1"
 authors = ["guigou"]
 edition = "2021"

@@ -12,7 +12,7 @@ openbrush = { version = "4.0.0-beta", git = "https://github.com/Brushfam/openbru
 lucky = { path = "../logics", default-features = false }
 reward_manager = { path = "../contracts/reward_manager", default-features = false, features = ["ink-as-dependency"] }
 dapps_staking_developer = { path = "../contracts/dapps_staking_developer", default-features = false, features = ["ink-as-dependency"] }
-lucky_raffle = { path = "../contracts/lucky_raffle", default-features = false, features = ["ink-as-dependency"] }
+raffle_consumer = { path = "../contracts/raffle_consumer", default-features = false, features = ["ink-as-dependency"] }
 
 phat_rollup_anchor_ink = { git = "https://github.com/GuiGou12358/phat-offchain-rollup" , default-features = false}
 
@@ -35,7 +35,7 @@ std = [
     "reward_manager/std",
     "dapps_staking_developer/std",
     "phat_rollup_anchor_ink/std",
-    "lucky_raffle/std",
+    "raffle_consumer/std",
 ]
 ink-as-dependency = []
 e2e-tests = []
