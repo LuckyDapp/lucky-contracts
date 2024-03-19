@@ -297,6 +297,7 @@ mod lucky_raffle {
 
         /// Processes a request with the the core js and returns the response.
         fn handle_request(&self, request: &[u8]) -> Result<ResponseMessage> {
+
             let Some(CoreJs {
                 script,
                 code_hash,
@@ -308,31 +309,17 @@ mod lucky_raffle {
                 return Err(ContractError::CoreNotConfigured);
             };
 
-            let result = match self.run_js_inner(&script, request, settings) {
-                Ok(output_value) => {
-                    let input_hash = self.env().hash_bytes::<ink::env::hash::Sha2x256>(request);
-                    ResponseMessage::JsResponse {
-                        js_script_hash: code_hash,
-                        input_hash,
-                        settings_hash,
-                        output_value,
-                    }
-                }
-                Err(ContractError::JsError(s)) => ResponseMessage::Error {
-                    js_script_hash: code_hash,
-                    input_value: request.to_vec(),
-                    settings_hash,
-                    error: s.into_bytes(),
-                },
-                Err(e) => ResponseMessage::Error {
-                    js_script_hash: code_hash,
-                    input_value: request.to_vec(),
-                    settings_hash,
-                    error: e.encode(),
-                },
+            let output_value = self.run_js_inner(&script, request, settings)?;
+
+            let input_hash = self.env().hash_bytes::<ink::env::hash::Sha2x256>(request);
+            let response = ResponseMessage::JsResponse {
+                js_script_hash: code_hash,
+                input_hash,
+                settings_hash,
+                output_value,
             };
 
-            Ok(result)
+            Ok(response)
         }
 
         /// Processes a request with the the core js and returns the output.
