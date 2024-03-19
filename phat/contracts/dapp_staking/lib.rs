@@ -8,9 +8,8 @@ mod dapp_staking {
 
     use alloc::{string::String, vec::Vec};
     use pink_extension::chain_extension::signing;
-    use pink_extension::{error};
+    use pink_extension::error;
     use scale::{Decode, Encode};
-
 
     #[derive(Encode, Decode, Debug)]
     #[cfg_attr(
@@ -93,7 +92,7 @@ mod dapp_staking {
 
         /// Gets the sender address used by this rollup
         #[ink(message)]
-        pub fn get_sender_address(&self) -> Vec<u8>{
+        pub fn get_sender_address(&self) -> Vec<u8> {
             if let Some(Some(sender_key)) = self.config.as_ref().map(|c| c.sender_key.as_ref()) {
                 signing::get_public_key(sender_key, signing::SigType::Sr25519)
             } else {
@@ -108,7 +107,6 @@ mod dapp_staking {
                 .as_ref()
                 .map(|c| (c.rpc.clone(), c.pallet_id, c.call_id, c.smart_contract))
         }
-
 
         /// Configures the call (admin only)
         #[ink(message)]
@@ -167,7 +165,6 @@ mod dapp_staking {
             let tx_id = subrpc::send_transaction(&config.rpc, &signed_tx)?;
 
             Ok(Some(tx_id))
-
         }
 
         /// Returns BadOrigin error if the caller is not the owner
@@ -181,12 +178,9 @@ mod dapp_staking {
 
         /// Returns the config reference or raise the error `NotConfigured`
         fn ensure_configured(&self) -> Result<&Config> {
-            self.config
-                .as_ref()
-                .ok_or(ContractError::NotConfigured)
+            self.config.as_ref().ok_or(ContractError::NotConfigured)
         }
     }
-
 
     #[cfg(test)]
     mod tests {
@@ -213,11 +207,11 @@ mod dapp_staking {
             let rpc = get_env("RPC");
             let pallet_id: u8 = get_env("PALLET_ID").parse().expect("u8 expected");
             let call_id: u8 = get_env("CALL_ID").parse().expect("u8 expected");
-            let sc : [u8;32] = hex::decode(get_env("SMART_CONTRACT"))
+            let sc: [u8; 32] = hex::decode(get_env("SMART_CONTRACT"))
                 .expect("hex decode failed")
                 .try_into()
                 .expect("incorrect length");
-            let smart_contract : AccountId = sc.into();
+            let smart_contract: AccountId = sc.into();
             let signer_key = std::env::var("SIGNER_KEY")
                 .map(|s| hex::decode(s).expect("hex decode failed"))
                 .ok();
@@ -255,7 +249,9 @@ mod dapp_staking {
 
             let contract = init_contract();
 
-            let r = contract.claim_dapp_rewards(4522).expect("failed to answer request");
+            let r = contract
+                .claim_dapp_rewards(4522)
+                .expect("failed to answer request");
             debug_println!("answer request: {r:?}");
         }
     }
