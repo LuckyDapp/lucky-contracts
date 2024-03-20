@@ -1,36 +1,43 @@
-# Lucky-contracts
-Smart contracts to distribute the rewards received by the developer from dAppStaking.
-Based on the configuration (ratio distribution) 100%, 80%, ... of rewards will be distributed randomly to 1,2,3, ... lucky participant(s).
+# Lucky Ink! Smart Contracts
+
+Smart contracts to manage the rewards received by the developer from dAppStaking.
+Based on the configuration, a percentage of the rewards will be distributed randomly to 1,2,3, ... lucky participant(s).
  
-## Smart contract 'dAppStaking Developer'
+## Smart contract `dapps_staking_developer`
 
-This smart contract will be registered as developer in the dAppStaking module and will receive rewards from dAppStaking.
-The smart contract 'Raffle Consumer' will be whitelisted to be able to withdraw these rewards.
+This smart contract is registered as developer in the `dAppStaking` pallet and receives the rewards from dAppStaking.
+The smart contract `raffle_consumer` is whitelisted to be able to withdraw these rewards and then transfer them into the `reward_manager` contract.
 
-### Build the contract ###
+### Build the contract
+
 ```bash
 cd contracts/dapps_staking_developer
 cargo contract build
 ```
 
-## Smart contract 'Reward Manager'
+## Smart contract `reward_manager`
 
-This smart contract will manage rewards to distribute to the lucky addresses
+This smart contract manages the rewards that the lucky addresses can claim.
+Only the `raffle_consumer` contract is granted to provide the list of winners. 
 
-### Build the contract ###
+### Build the contract
+
 ```bash
 cd contracts/reward_manager
 cargo contract build
 ```
 
-## Smart contract 'Raffle Consumer'
+## Smart contract `raffle_consumer`
 
-This smart contract will :
- - consume data coming from the phat contract that manages the raffle.
- - transfer the fund from 'dAppStacking developer' to 'reward Manager' contracts
- - set the lucky address(es) in the 'Reward Manager' contract  
+This smart contract :
+ - consumes the data coming from the `raffle` phat contract that manages the raffle,
+ - transfers the fund from `dapps_staking_developer` contract to `reward_manager` contract,
+ - provide the lucky address(es) to `reward_manager` contract.
 
-### Build the contract ###
+Only the `raffle` phat contract is granted to provide the output of the raffle.
+
+### Build the contract
+
 ```bash
 cd contracts/raffle_consumer
 cargo contract build
@@ -56,9 +63,3 @@ And finally execute the following command to start e2e tests execution.
 cd contracts/raffle_consumer
 cargo contract build
 ```
-
-
-
-
-
-
