@@ -7,9 +7,9 @@ use openbrush::traits::{AccountId, Balance, Storage};
 #[openbrush::wrapper]
 pub type Psp22RewardRef = dyn Psp22Reward;
 
-pub const REWARD_MANAGER: RoleType = ink::selector_id!("REWARD_MANAGER");
-pub const REWARD_VIEWER: RoleType = ink::selector_id!("REWARD_VIEWER");
-pub const CLAIMER_FROM: RoleType = ink::selector_id!("CLAIMER_FROM");
+pub const REWARD_MANAGER_ROLE: RoleType = ink::selector_id!("REWARD_MANAGER");
+pub const REWARD_VIEWER_ROLE: RoleType = ink::selector_id!("REWARD_VIEWER");
+
 
 #[derive(Default, Debug)]
 #[openbrush::storage_item]
@@ -22,7 +22,7 @@ pub trait Psp22Reward: Internal + Storage<Data> + access_control::Internal {
     /// Add the accounts in the list of winners for a given era
     /// accounts contains the list of winners and the rewards by account
     #[ink(message, payable, selector = 0xc218e5ba)]
-    #[openbrush::modifiers(access_control::only_role(REWARD_MANAGER))]
+    #[openbrush::modifiers(access_control::only_role(REWARD_MANAGER_ROLE))]
     fn fund_rewards_and_add_winners(
         &mut self,
         era: u32,
@@ -75,7 +75,7 @@ pub trait Psp22Reward: Internal + Storage<Data> + access_control::Internal {
 
     /// return the pending rewards for a given account.
     #[ink(message)]
-    #[openbrush::modifiers(access_control::only_role(REWARD_VIEWER))]
+    #[openbrush::modifiers(access_control::only_role(REWARD_VIEWER_ROLE))]
     fn get_pending_rewards_from(
         &mut self,
         from: AccountId,

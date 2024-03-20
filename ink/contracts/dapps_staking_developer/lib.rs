@@ -8,7 +8,7 @@ pub mod dapps_staking_developer {
     use openbrush::modifiers;
     use openbrush::traits::Storage;
 
-    const WHITELISTED_ADDRESS: RoleType = ink::selector_id!("WHITELISTED_ADDRESS");
+    pub const WHITELISTED_ADDRESS: RoleType = ink::selector_id!("WHITELISTED_ADDRESS");
 
     /// Errors occurred in the contract
     #[derive(Debug, Eq, PartialEq, scale::Encode, scale::Decode)]
@@ -46,6 +46,11 @@ pub mod dapps_staking_developer {
             instance
         }
 
+        #[ink(message, payable)]
+        pub fn fund(&mut self) -> Result<(), ContractError> {
+            Ok(())
+        }
+
         #[ink(message, selector = 0x410fcc9d)]
         #[openbrush::modifiers(only_role(WHITELISTED_ADDRESS))]
         pub fn withdraw(&mut self, value: Balance) -> Result<(), ContractError> {
@@ -59,7 +64,9 @@ pub mod dapps_staking_developer {
         #[ink(message)]
         #[modifiers(only_role(DEFAULT_ADMIN_ROLE))]
         pub fn upgrade_contract(&mut self, new_code_hash: Hash) -> Result<(), ContractError> {
-            self.env().set_code_hash(&new_code_hash).map_err(|_| ContractError::UpgradeError)?;
+            self.env()
+                .set_code_hash(&new_code_hash)
+                .map_err(|_| ContractError::UpgradeError)?;
             Ok(())
         }
 

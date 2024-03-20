@@ -1,6 +1,7 @@
+use openbrush::contracts::access_control::RoleType;
+
+pub const RAFFLE_MANAGER_ROLE: RoleType = ink::selector_id!("RAFFLE_MANAGER");
+
 pub mod participant_filter;
-pub mod participant_manager;
 pub mod raffle;
-pub mod random;
-pub mod random_generator;
 pub mod reward;

@@ -1,88 +1,65 @@
-# Lucky-contracts
-Smartcontracts to distribute the rewards received by the developer from dAppStaking.
-Based on the configuration (ratioDistribition) 100%, 80%, ... of rewards will be distributed randomly to 1,2,3, ... lucky participant(s).
+# Lucky Ink! Smart Contracts
 
-
-Structure of the project:
-<pre>
- |-- contracts/
- |   |-- dapps_staking_developer/
- |       |-- lib.rs
- |   |-- lucky_raffle/
- |       |-- lib.rs
- |   |-- random_generator/
- |       |-- lib.rs
- |   |-- reward_manager/
- |       |-- lib.rs
- |-- logics/
- |   |-- traits/
- |       |-- participant_filter
- |           |-- filter_latest_winner.rs
- |       |-- reward
- |           |-- psp22_reward.rs
- |       |-- participant_manager.rs
- |       |-- raffle.rs    
- |       |-- random.rs
- |       |-- random_generators.rs
- |   |-- tests/
- |       |-- participant_manager.rs
- |       |-- psp22_reward.rs   
- |       |-- raffle.rs
- |       |-- random_generators.rs
- </pre>
+Smart contracts to manage the rewards received by the developer from dAppStaking.
+Based on the configuration, a percentage of the rewards will be distributed randomly to 1,2,3, ... lucky participant(s).
  
-## Smart contract 'dAppStaking Developer'
+## Smart contract `dapps_staking_developer`
 
-This smart contract will be registered as developer in the dAppStaking module and will receive rewards from dAppStaking.
-The smart contract 'Raffle' will be whitelisted to be able to withdraw these rewards.
+This smart contract is registered as developer in the `dAppStaking` pallet and receives the rewards from dAppStaking.
+The smart contract `raffle_consumer` is whitelisted to be able to withdraw these rewards and then transfer them into the `reward_manager` contract.
 
-### Build the contract ###
+### Build the contract
+
 ```bash
 cd contracts/dapps_staking_developer
 cargo contract build
 ```
 
-## Smart contract 'reward Manager'
+## Smart contract `reward_manager`
 
-This smart contract will manage rewards to distribute to the lucky addresses
+This smart contract manages the rewards that the lucky addresses can claim.
+Only the `raffle_consumer` contract is granted to provide the list of winners. 
 
-### Build the contract ###
+### Build the contract
+
 ```bash
 cd contracts/reward_manager
 cargo contract build
 ```
 
-## Smart contract 'random_generator'
+## Smart contract `raffle_consumer`
 
-This smart contract will act as an Oracle to provide the pseudo random number
+This smart contract :
+ - consumes the data coming from the `raffle` phat contract that manages the raffle,
+ - transfers the fund from `dapps_staking_developer` contract to `reward_manager` contract,
+ - provide the lucky address(es) to `reward_manager` contract.
 
-### Build the contract ###
+Only the `raffle` phat contract is granted to provide the output of the raffle.
+
+### Build the contract
+
 ```bash
-cd contracts/random_generator
+cd contracts/raffle_consumer
 cargo contract build
 ```
 
+## Run e2e tests
 
-## Smart contract 'lucky Raffle'
+Before you can run the test, you have to install a Substrate node with pallet-contracts. By default, e2e tests require that you install substrate-contracts-node. You do not need to run it in the background since the node is started for each test independently. To install the latest version:
 
-This smart contract will :
- - randomly select address(es) in the list of participants
- - transfer the fund from 'dAppStacking developer' to 'reward Manager' contracts
- - set the lucky address(es) in the 'reward Manager' contract  
-
-### Build the contract ###
 ```bash
-cd contracts/lucky_raffle
+cargo install contracts-node --git https://github.com/paritytech/substrate-contracts-node.git
+```
+
+If you want to run any other node with pallet-contracts you need to change CONTRACTS_NODE environment variable:
+
+```bash
+export CONTRACTS_NODE="YOUR_CONTRACTS_NODE_PATH"
+```
+
+And finally execute the following command to start e2e tests execution.
+
+```bash
+cd contracts/raffle_consumer
 cargo contract build
 ```
-
-
-## Runs the tests
-
-```bash
-cargo test
-```
-
-
-
-
