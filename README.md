@@ -24,7 +24,7 @@ There are three ink! smart contracts deployed on Astar Network:
  - `reward_manager` : this contract contains the list of winners and the funds to be claimed. The users interact with this smart contract,
  - `raffle_consumer` : this smart contract consumes the output of the raffle managed by the `raffle` phat contract. This contract interacts with `dapp_staking_developer` contract to withdraw the required funds and with the `reward_manager` to provide the lucky addresses and the rewards. 
 
-More information [here](ink/README.md]).
+More information [here](ink/README.md).
 
 ## Phat contracts
 
@@ -32,4 +32,4 @@ There are two phat contracts deployed on Phala Network:
 - `dapp_staking` : this phat contract calls the `dAppStaking` pallet to claim the dApp rewards,
 - `raffle` : this phat contract manages the raffle and sent the result to the `raffle_consumer` contract.
 
-More information [here](phat/README.md]).
+More information [here](phat/README.md).
