@@ -133,8 +133,8 @@ function getEraInfo(graphApi: string, era: number): EraInfo {
   }
 
   const blockNumber = node1.blockNumber;
-  console.log('Block Number for era %s: %s', node1.era, blockNumber);
 
+  console.log(`Block Number for era ${node1.era}: ${blockNumber}`);
 
   const query2 = JSON.stringify({
     query : `query {dAppSubPeriods(filter: {blockNumber: {lessThanOrEqualTo: \"${blockNumber}\"}}, first: 1, orderBy: BLOCK_NUMBER_DESC){nodes{ period, subPeriod, blockNumber}}}`
@@ -183,7 +183,7 @@ function getEraInfo(graphApi: string, era: number): EraInfo {
 
   const period = node2.period;
   const subPeriod = node2.subPeriod;
-  console.log('Period %s and sub-period %s for era %s', period, subPeriod, era);
+  console.log(`Period ${period} and sub-period ${subPeriod} for era ${era}`);
 
   return {
     era: era.valueOf(),
@@ -316,7 +316,7 @@ function getParticipants(graphApi: string, period: number, era: number): Partici
     participants.push({address, nbTickets: Number(nbTickets)});
   }
 
-  console.log('Number of participants: %s', participants.length);
+  console.log(`Number of participants: ${participants.length}`);
   return participants;
 
 }
