@@ -1,12 +1,9 @@
 # Lucky Ink! Smart Contracts
 
-Smart contracts to manage the rewards received by the developer from dAppStaking.
-Based on the configuration, a percentage of the rewards will be distributed randomly to 1,2,3, ... lucky participant(s).
- 
 ## Smart contract `dapps_staking_developer`
 
 This smart contract is registered as developer in the `dAppStaking` pallet and receives the rewards from dAppStaking.
-The smart contract `raffle_consumer` is whitelisted to be able to withdraw these rewards and then transfer them into the `reward_manager` contract.
+The `raffle_consumer` contract is whitelisted to be able to withdraw these rewards and then transfer them into the `reward_manager` contract.
 
 ### Build the contract
 
@@ -30,8 +27,8 @@ cargo contract build
 ## Smart contract `raffle_consumer`
 
 This smart contract :
- - consumes the data coming from the `raffle` phat contract that manages the raffle,
- - transfers the fund from `dapps_staking_developer` contract to `reward_manager` contract,
+ - consumes the output coming from the `raffle` phat contract that manages the raffle,
+ - transfers funds from `dapps_staking_developer` contract to `reward_manager` contract,
  - provide the lucky address(es) to `reward_manager` contract.
 
 Only the `raffle` phat contract is granted to provide the output of the raffle.
@@ -60,6 +57,6 @@ export CONTRACTS_NODE="YOUR_CONTRACTS_NODE_PATH"
 And finally execute the following command to start e2e tests execution.
 
 ```bash
-cd contracts/raffle_consumer
-cargo contract build
+cd integration_tests
+cargo test --features e2e-tests
 ```
