@@ -25,7 +25,7 @@ pub mod raffle_consumer {
     // Selector of Psp22Reward::fund_rewards_and_add_winners": "0xc218e5ba"
     const FUND_REWARDS_AND_WINNERS_SELECTOR: [u8; 4] = [0xc2, 0x18, 0xe5, 0xba];
 
-    /// Event emitted when the Rafle is done
+    /// Event emitted when the Raffle is done
     #[ink(event)]
     pub struct RaffleDone {
         #[ink(topic)]
@@ -154,6 +154,8 @@ pub mod raffle_consumer {
 
                 return Ok(());
             }
+
+            ink::env::debug_println!("winners: {:02x?}", response.winners);
 
             let winners_rewards =
                 self.mark_raffle_done(response.era, response.rewards, &response.winners)?;
