@@ -53,13 +53,6 @@ mod lucky_raffle {
         core_js: Lazy<CoreJs>,
     }
 
-    #[derive(Encode, Decode)]
-    pub struct Request {
-        era: u32,
-        nb_winners: u16,
-        excluded: Vec<String>,
-    }
-
     #[derive(Encode, Decode, Debug, Clone)]
     #[cfg_attr(
         feature = "std",
@@ -287,23 +280,21 @@ mod lucky_raffle {
                 .get(&Self::LAST_WINNERS)
                 .log_err("run raffle: error when getting excluded addresses")?
                 .unwrap_or_default();
-            let formatted_excluded = excluded.iter().map(format_address).collect();
 
-            let request = Request {
+            let request = RequestSc {
                 era,
                 nb_winners,
-                excluded: formatted_excluded,
+                excluded,
             };
-
-            let response = self.handle_request(&request.encode())?;
+            let response = self.handle_request(&request)?;
             // Attach an action to the tx by:
             client.action(Action::Reply(response.encode()));
 
             maybe_submit_tx(client, &self.attest_key, config.sender_key.as_ref())
         }
 
-        /// Processes a request with the the core js and returns the response.
-        fn handle_request(&self, request: &[u8]) -> Result<ResponseMessage> {
+        /// Processes a request with the core js and returns the response.
+        fn handle_request(&self, request_sc: &RequestSc) -> Result<ResponseMessage> {
             let Some(CoreJs {
                 script,
                 code_hash,
@@ -315,20 +306,23 @@ mod lucky_raffle {
                 return Err(ContractError::CoreNotConfigured);
             };
 
-            let output_value = self.run_js_inner(&script, request, settings)?;
+            let request_js = convert_request(request_sc);
+            let output_value_js = self.run_js_inner(&script, &request_js.encode(), settings)?;
 
-            let input_hash = self.env().hash_bytes::<ink::env::hash::Sha2x256>(request);
+            let input_hash = self
+                .env()
+                .hash_bytes::<ink::env::hash::Sha2x256>(&request_sc.encode());
             let response = ResponseMessage::JsResponse {
                 js_script_hash: code_hash,
                 input_hash,
                 settings_hash,
-                output_value,
+                output_value: convert_output(output_value_js),
             };
 
             Ok(response)
         }
 
-        /// Processes a request with the the core js and returns the output.
+        /// Processes a request with the core js and returns the output.
         fn run_js_inner(&self, js_code: &str, request: &[u8], settings: String) -> Result<Vec<u8>> {
             let args = alloc::vec![alloc::format!("0x{}", hex_fmt::HexFmt(request)), settings];
 
@@ -358,13 +352,12 @@ mod lucky_raffle {
         ) -> Result<Vec<u8>> {
             self.ensure_owner()?;
             self.ensure_client_configured()?;
-            let formatted_excluded = excluded.iter().map(format_address).collect();
-            let request = Request {
+            let request = RequestSc {
                 era,
                 nb_winners,
-                excluded: formatted_excluded,
+                excluded,
             };
-            let response = self.handle_request(&request.encode())?;
+            let response = self.handle_request(&request)?;
             let encoded_response = response.encode();
             info!("encoded response : {:02x?}", encoded_response);
             Ok(encoded_response)
@@ -462,16 +455,91 @@ mod lucky_raffle {
         Ok(None)
     }
 
-    fn format_address(address: &AccountId) -> String {
-        let address_hex: [u8; 32] = address.encode().try_into().expect("incorrect length");
+    #[derive(Encode, Decode)]
+    pub struct RequestSc {
+        era: u32,
+        nb_winners: u16,
+        excluded: Vec<AccountId>,
+    }
+
+    #[derive(Encode, Decode)]
+    pub struct RequestJs {
+        era: u32,
+        nb_winners: u16,
+        excluded: Vec<String>,
+    }
+
+    fn convert_address_input(address: &AccountId) -> String {
+        let address_hex: [u8; 32] = scale::Encode::encode(&address)
+            .try_into()
+            .expect("incorrect length");
         AccountId32::from(address_hex)
             .to_ss58check_with_version(Ss58AddressFormatRegistry::AstarAccount.into())
+    }
+
+    fn convert_request(request_sc: &RequestSc) -> RequestJs {
+        let era = request_sc.era;
+        let nb_winners = request_sc.nb_winners;
+        let excluded = request_sc
+            .excluded
+            .iter()
+            .map(convert_address_input)
+            .collect();
+        RequestJs {
+            era,
+            nb_winners,
+            excluded,
+        }
+    }
+
+    #[derive(scale::Encode, scale::Decode)]
+    pub struct ResponseJs {
+        pub era: u32,
+        pub skipped: bool,
+        pub rewards: Balance,
+        pub winners: Vec<String>,
+    }
+
+    #[derive(scale::Encode, scale::Decode)]
+    pub struct ResponseSc {
+        pub era: u32,
+        pub skipped: bool,
+        pub rewards: Balance,
+        pub winners: Vec<AccountId>,
+    }
+
+    fn convert_address_output(address: &str) -> AccountId {
+        let account_id = AccountId32::from_ss58check(address).expect("incorrect address");
+        let address_hex: [u8; 32] = scale::Encode::encode(&account_id)
+            .try_into()
+            .expect("incorrect length");
+        AccountId::from(address_hex)
+    }
+
+    fn convert_output(output: Vec<u8>) -> Vec<u8> {
+        let output_js =
+            ResponseJs::decode(&mut output.as_slice()).expect("failed to convert js output");
+        let era = output_js.era;
+        let skipped = output_js.skipped;
+        let rewards = output_js.rewards;
+        let winners = output_js
+            .winners
+            .iter()
+            .map(|s| convert_address_output(s.as_str()))
+            .collect();
+        let output_sc = ResponseSc {
+            era,
+            skipped,
+            rewards,
+            winners,
+        };
+
+        output_sc.encode()
     }
 
     #[cfg(test)]
     mod tests {
         use super::*;
-        use ink::env::debug_println;
 
         struct EnvVars {
             /// The RPC endpoint of the target blockchain
@@ -542,11 +610,11 @@ mod lucky_raffle {
             let oracle = init_contract();
 
             let r = oracle.run_raffle().expect("failed to run raffle");
-            debug_println!("answer request: {r:?}");
+            ink::env::debug_println!("answer request: {r:?}");
         }
 
         #[ink::test]
-        fn test_format_address() {
+        fn test_convert_address() {
             let _ = env_logger::try_init();
             pink_extension_runtime::mock_ext::mock_all_ext();
 
@@ -557,15 +625,17 @@ mod lucky_raffle {
                     .expect("incorrect length");
             let address = AccountId::from(address_hex);
 
-            let astar_address = format_address(&address);
+            let astar_address_str = convert_address_input(&address);
             assert_eq!(
-                astar_address,
+                astar_address_str,
                 "aCG9z4XcZrSUfrzuaUYWwxKruA6rnA8z9wMcZtDQEfPRQLH"
-            )
+            );
+
+            assert_eq!(address, convert_address_output(&astar_address_str));
         }
 
         #[ink::test]
-        fn test_encode_data() {
+        fn test_encode_input() {
             let _ = env_logger::try_init();
             pink_extension_runtime::mock_ext::mock_all_ext();
 
@@ -578,27 +648,41 @@ mod lucky_raffle {
                     .try_into()
                     .expect("incorrect length");
             let address1 = AccountId::from(address1_hex);
-            let astar_address1 = format_address(&address1);
-            debug_println!("astar_address1: {astar_address1}");
-            excluded.push(astar_address1);
+            excluded.push(address1);
 
             let address2_hex: [u8; 32] =
-                hex::decode("58394b6558656a61374862335676734bbc5a534c34584b436a6a6f6265507065")
+                hex::decode("bf80905d9c52857f94b92b8771568687c251c6e9784ec0aff0d3e2ce0374b948")
                     .expect("hex decode failed")
                     .try_into()
                     .expect("incorrect length");
             let address2 = AccountId::from(address2_hex);
-            let astar_address2 = format_address(&address2);
-            debug_println!("astar_address2: {astar_address2}");
-            excluded.push(astar_address2);
+            excluded.push(address2);
 
-            let request = Request {
+            let request_sc = RequestSc {
                 era,
                 nb_winners,
                 excluded,
             };
-            let encoded_request = request.encode();
-            debug_println!("encoded request: {encoded_request:02x?}");
+            let request_js = convert_request(&request_sc);
+            let encoded_request = scale::Encode::encode(&request_js);
+            ink::env::debug_println!("encoded request: {encoded_request:02x?}");
         }
+    }
+
+    #[ink::test]
+    fn test_encode_output() {
+        let _ = env_logger::try_init();
+        pink_extension_runtime::mock_ext::mock_all_ext();
+
+        let address_string = "aGPdXs8Ke2e9zE57EhMyYAVMC15VEbYBSGmmaVQCcdJkzgK".to_string();
+        let response_sc = ResponseJs {
+            era: 4589,
+            skipped: false,
+            rewards: 163483092786717962675,
+            winners: vec![address_string],
+        };
+
+        let response = convert_output(response_sc.encode());
+        ink::env::debug_println!("output: {response:02x?}");
     }
 }
