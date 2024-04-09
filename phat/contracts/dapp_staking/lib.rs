@@ -242,8 +242,8 @@ mod dapp_staking {
             contract
         }
 
-        #[ink::test
-        #[ignore = "Update the era before running this test"]]
+        #[ink::test]
+        #[ignore = "Update the era before running this test"]
         fn claim_dapp_rewards() {
             let _ = env_logger::try_init();
             pink_extension_runtime::mock_ext::mock_all_ext();
