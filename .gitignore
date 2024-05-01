@@ -1,2 +1,4 @@
 target
 Cargo.lock
+/phat/contracts/raffle/.env_shiden
+/phat/contracts/raffle/.env_astar
