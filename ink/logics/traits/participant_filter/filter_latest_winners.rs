@@ -55,4 +55,14 @@ pub trait FilterLatestWinners: Storage<Data> + access_control::Internal + Rollup
     fn get_last_winners(&self) -> Vec<AccountId> {
         Vec::from(self.data::<Data>().last_winners.clone())
     }
+
+    #[ink(message)]
+    #[openbrush::modifiers(access_control::only_role(RAFFLE_MANAGER_ROLE))]
+    fn add_address_in_last_winner(
+        &mut self,
+        winner: AccountId,
+    ) -> Result<(), ParticipantFilterError> {
+        self.add_winner(winner);
+        Ok(())
+    }
 }
