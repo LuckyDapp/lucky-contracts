@@ -310,12 +310,27 @@ pub mod raffle_consumer {
         }
     }
 
+    /// Event emitted when a message is pushed in the queue
+    #[ink(event)]
+    pub struct MessageQueued {
+        #[ink(topic)]
+        id: u32,
+        data: Vec<u8>,
+    }
+
+    /// Event emitted when a message is processed
+    #[ink(event)]
+    pub struct MessageProcessedTo {
+        #[ink(topic)]
+        id: u32,
+    }
+
     impl rollup_anchor::EventBroadcaster for Contract {
-        fn emit_event_message_queued(&self, _id: u32, _data: Vec<u8>) {
-            // no queue here
+        fn emit_event_message_queued(&self, id: u32, data: Vec<u8>) {
+            self.env().emit_event(MessageQueued { id, data });
         }
-        fn emit_event_message_processed_to(&self, _id: u32) {
-            // no queue here
+        fn emit_event_message_processed_to(&self, id: u32) {
+            self.env().emit_event(MessageProcessedTo { id });
         }
     }
 
