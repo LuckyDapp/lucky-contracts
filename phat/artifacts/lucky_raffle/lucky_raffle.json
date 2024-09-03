@@ -1,11 +1,11 @@
 {
   "source": {
-    "hash": "0xfbb4f702449248ef076680c6eeb4d9e685fabd4a943e01359482fa43d7ec5496",
+    "hash": "0xc2a5e9eec68b21e74adf1929e3ab3c47cd34c5724039479d660732b23b37379b",
     "language": "ink! 4.3.0",
-    "compiler": "rustc 1.76.0",
+    "compiler": "rustc 1.80.1",
     "build_info": {
-      "build_mode": "Release",
-      "cargo_contract_version": "3.2.0",
+      "build_mode": "Debug",
+      "cargo_contract_version": "4.1.1",
       "rust_toolchain": "stable-x86_64-unknown-linux-gnu",
       "wasm_opt_settings": {
         "keep_debug_symbols": false,
@@ -15,11 +15,12 @@
   },
   "contract": {
     "name": "lucky_raffle",
-    "version": "2.0.0",
+    "version": "2.1.0",
     "authors": [
       "GuiGou"
     ]
   },
+  "image": null,
   "spec": {
     "constructors": [
       {
