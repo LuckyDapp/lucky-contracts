@@ -13,6 +13,7 @@ pub mod dapps_staking_developer {
     /// Errors occurred in the contract
     #[derive(Debug, Eq, PartialEq, scale::Encode, scale::Decode)]
     #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
+    #[allow(clippy::cast_possible_truncation)]
     pub enum ContractError {
         AccessControlError(AccessControlError),
         TransferError,

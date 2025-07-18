@@ -10,23 +10,6 @@ pub mod reward_manager {
 
     const WHITELISTED_ADDRESS: RoleType = ink::selector_id!("WHITELISTED_ADDRESS");
 
-    /// Event emitted when a reward is pending
-    #[ink(event)]
-    pub struct PendingReward {
-        #[ink(topic)]
-        account: AccountId,
-        era: u32,
-        amount: Balance,
-    }
-
-    /// Event emitted when a user claim rewards
-    #[ink(event)]
-    pub struct RewardsClaimed {
-        #[ink(topic)]
-        account: AccountId,
-        amount: Balance,
-    }
-
     /// Errors occurred in the contract
     #[derive(Debug, Eq, PartialEq, scale::Encode, scale::Decode)]
     #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]

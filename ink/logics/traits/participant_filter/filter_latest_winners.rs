@@ -1,67 +1,99 @@
-use crate::traits::participant_filter::ParticipantFilterError;
 use crate::traits::RAFFLE_MANAGER_ROLE;
+use crate::traits::error::RaffleError;
 use ink::prelude::collections::vec_deque::VecDeque;
 use ink::prelude::vec::Vec;
-use openbrush::contracts::access_control::*;
-use openbrush::traits::{AccountId, Storage};
-use phat_rollup_anchor_ink::traits::rollup_anchor::RollupAnchor;
-use scale::Encode;
+use ink::primitives::AccountId;
+use inkv5_client_lib::traits::access_control::{BaseAccessControl};
+use inkv5_client_lib::traits::kv_store::KvStore;
+use ink::env::DefaultEnvironment;
+use ink::scale::{Encode};
+
 
 const LAST_WINNERS: u32 = ink::selector_id!("LAST_WINNER");
 
 #[derive(Default, Debug)]
-#[openbrush::storage_item]
-pub struct Data {
+#[ink::storage_item]
+pub struct FilterLatestWinnersData {
     nb_filtered_winners: u16,
     /// last winners to exclude
     last_winners: VecDeque<AccountId>,
 }
 
-#[openbrush::trait_definition]
-pub trait FilterLatestWinners: Storage<Data> + access_control::Internal + RollupAnchor {
+#[ink::trait_definition]
+pub trait FilterLatestWinners {
     #[ink(message)]
-    #[openbrush::modifiers(access_control::only_role(RAFFLE_MANAGER_ROLE))]
     fn set_nb_winners_filtered(
         &mut self,
         nb_filtered_winners: u16,
-    ) -> Result<(), ParticipantFilterError> {
-        self.data::<Data>().nb_filtered_winners = nb_filtered_winners;
-        Ok(())
-    }
+    ) -> Result<(), RaffleError>;
 
     #[ink(message)]
-    fn get_nb_winners_filtered(&self) -> u16 {
-        self.data::<Data>().nb_filtered_winners
+    fn get_nb_winners_filtered(&self) -> u16;
+
+    #[ink(message)]
+    fn get_last_winners(&self) -> Vec<AccountId> ;
+
+    #[ink(message)]
+    fn add_address_in_last_winner(
+        &mut self,
+        winner: AccountId,
+    ) -> Result<(), RaffleError> ;
+}
+
+
+pub trait FilterLatestWinnersStorage {
+    fn get_storage(&self) -> &FilterLatestWinnersData;
+    fn get_mut_storage(&mut self) -> &mut FilterLatestWinnersData;
+}
+
+
+pub trait BaseFilterLatestWinners: FilterLatestWinnersStorage + KvStore + BaseAccessControl {
+    
+    fn inner_set_nb_winners_filtered(
+        &mut self,
+        nb_filtered_winners: u16,
+    ) -> Result<(), RaffleError> {
+
+        let caller = ::ink::env::caller::<DefaultEnvironment>();
+        self.inner_check_role(RAFFLE_MANAGER_ROLE, caller)?;
+
+        FilterLatestWinnersStorage::get_mut_storage(self).nb_filtered_winners = nb_filtered_winners;
+        Ok(())
+    }
+    
+    fn inner_get_nb_winners_filtered(&self) -> u16 {
+        FilterLatestWinnersStorage::get_storage(self).nb_filtered_winners
     }
 
     fn add_winner(&mut self, winner: AccountId) {
         // add the last winner in the back
-        self.data::<Data>().last_winners.push_back(winner);
-        if self.data::<Data>().last_winners.len() > self.data::<Data>().nb_filtered_winners as usize
+        FilterLatestWinnersStorage::get_mut_storage(self).last_winners.push_back(winner);
+        if FilterLatestWinnersStorage::get_storage(self).last_winners.len() > FilterLatestWinnersStorage::get_storage(self).nb_filtered_winners as usize
         {
             // remove the oldest winner (from the front)
-            self.data::<Data>().last_winners.pop_front();
+            FilterLatestWinnersStorage::get_mut_storage(self).last_winners.pop_front();
         }
         // save the excluded addresses in the kv store
-        let excluded_addresses = Vec::from(self.data::<Data>().last_winners.clone());
-        RollupAnchor::set_value(
+        let excluded_addresses = Vec::from(FilterLatestWinnersStorage::get_storage(self).last_winners.clone());
+        KvStore::inner_set_value(
             self,
             &LAST_WINNERS.encode(),
             Some(&excluded_addresses.encode()),
         );
     }
 
-    #[ink(message)]
-    fn get_last_winners(&self) -> Vec<AccountId> {
-        Vec::from(self.data::<Data>().last_winners.clone())
+    fn inner_get_last_winners(&self) -> Vec<AccountId> {
+        Vec::from(FilterLatestWinnersStorage::get_storage(self).last_winners.clone())
     }
 
-    #[ink(message)]
-    #[openbrush::modifiers(access_control::only_role(RAFFLE_MANAGER_ROLE))]
-    fn add_address_in_last_winner(
+    fn inner_add_address_in_last_winner(
         &mut self,
         winner: AccountId,
-    ) -> Result<(), ParticipantFilterError> {
+    ) -> Result<(), RaffleError> {
+        
+        let caller = ::ink::env::caller::<DefaultEnvironment>();
+        self.inner_check_role(RAFFLE_MANAGER_ROLE, caller)?;
+        
         self.add_winner(winner);
         Ok(())
     }
