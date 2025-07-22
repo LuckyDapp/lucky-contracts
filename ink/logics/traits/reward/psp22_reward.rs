@@ -44,7 +44,6 @@ pub trait Psp22Reward {
     /// Add the accounts in the list of winners for a given era
     /// accounts contains the list of winners and the rewards by account
     #[ink(message, payable, selector = 0xc218e5ba)]
-    //#[openbrush::modifiers(access_control::only_role(REWARD_MANAGER_ROLE))]
     fn fund_rewards_and_add_winners(
         &mut self,
         era: u32,
@@ -61,7 +60,6 @@ pub trait Psp22Reward {
 
     /// return the pending rewards for a given account.
     #[ink(message)]
-    //#[openbrush::modifiers(access_control::only_role(REWARD_VIEWER_ROLE))]
     fn get_pending_rewards_from(
         &mut self,
         from: AccountId,
@@ -130,14 +128,6 @@ pub trait BasePsp22Reward: Psp22RewardStorage + BaseAccessControl {
         Ok(())
     }
 
-    /*
-    /// return true if the current account has pending rewards
-    fn inner_has_pending_rewards(&self) -> bool {
-        let from = Self::env().caller();
-        self._has_pending_rewards_from(from)
-    }
-     */
-
     fn inner_has_pending_rewards_from(&self, from: AccountId) -> bool {
         Psp22RewardStorage::get_storage(self).pending_rewards.contains(from)
     }
@@ -150,30 +140,12 @@ pub trait BasePsp22Reward: Psp22RewardStorage + BaseAccessControl {
         Ok(Psp22RewardStorage::get_storage(self).pending_rewards.get(from))
     }
 
-    /// claim all pending rewards for the current account
-    /// After claiming, there is not anymore pending rewards for this account
-    ///
-    /*
-    fn claim(&mut self) -> Result<(), RewardError> {
-        let from = Self::env().caller();
-        self._claim_from(from)
-    }
-        /// claim all pending rewards for the given account
-    /// After claiming, there is not anymore pending rewards for this account
-    #[ink(message)]
-    fn claim_from(&mut self, from: AccountId) -> Result<(), RewardError> {
-        self._claim_from(from)
-    }
-
-     */
-
-
     fn inner_claim_from(&mut self, from: AccountId) -> Result<(), RewardError> {
         // get all pending rewards for this account
-        match Psp22RewardStorage::get_storage(self).pending_rewards.get(&from) {
+        match Psp22RewardStorage::get_storage(self).pending_rewards.get(from) {
             Some(pending_rewards) => {
                 // remove the pending rewards
-                Psp22RewardStorage::get_mut_storage(self).pending_rewards.remove(&from);
+                Psp22RewardStorage::get_mut_storage(self).pending_rewards.remove(from);
                 // emit the event
                 ::ink::env::emit_event::<DefaultEnvironment, RewardsClaimed>(
                     RewardsClaimed{account:from, amount:pending_rewards}

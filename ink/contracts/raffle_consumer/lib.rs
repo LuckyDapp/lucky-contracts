@@ -13,11 +13,7 @@ pub mod raffle_consumer {
     use inkv5_client_lib::traits::*;
     use lucky::traits::error::RaffleError;
 
-
-    use lucky::traits::{
-        participant_filter::filter_latest_winners, participant_filter::filter_latest_winners::*,
-        raffle, raffle::*, RAFFLE_MANAGER_ROLE,
-    };
+    use lucky::traits::{participant_filter::filter_latest_winners, participant_filter::filter_latest_winners::*, raffle, raffle::*, RAFFLE_MANAGER_ROLE};
 
     // Selector of withdraw: "0x410fcc9d"
     const WITHDRAW_SELECTOR: [u8; 4] = [0x41, 0x0f, 0xcc, 0x9d];
@@ -77,6 +73,8 @@ pub mod raffle_consumer {
             let caller = instance.env().caller();
             // set the admin of this contract
             BaseAccessControl::init_with_admin(&mut instance, caller);
+            BaseAccessControl::inner_grant_role(&mut instance, RAFFLE_MANAGER_ROLE, caller)
+                .expect("Should grant the role RAFFLE_MANAGER_ROLE");
             instance.dapps_staking_developer_address = Some(dapps_staking_developer_address);
             instance.reward_manager_address = Some(reward_manager_address);
             instance
@@ -97,8 +95,6 @@ pub mod raffle_consumer {
                 return Ok(());
             }
 
-            ink::env::debug_println!("winners: {:02x?}", response.winners);
-
             let winners_rewards =
                 self.mark_raffle_done(response.era, response.rewards, &response.winners)?;
 
@@ -115,13 +111,15 @@ pub mod raffle_consumer {
             let dapps_staking_developer_address = self
                 .dapps_staking_developer_address
                 .ok_or(RaffleError::DappsStakingDeveloperAddressMissing)?;
+
             ink::env::call::build_call::<Environment>()
                 .call(dapps_staking_developer_address)
                 .exec_input(
                     ExecutionInput::new(Selector::new(WITHDRAW_SELECTOR)).push_arg(given_rewards),
                 )
-                .returns::<()>()
-                .invoke();
+                .returns::<Result<(), RaffleError>>()
+                .invoke()
+                .or(Err(RaffleError::CrossContractCallError1))?;
 
             // set the list of winners and fund the rewards
             let reward_manager_address = self
@@ -135,8 +133,9 @@ pub mod raffle_consumer {
                         .push_arg(response.era)
                         .push_arg(winners_rewards),
                 )
-                .returns::<()>()
-                .invoke();
+                .returns::<Result<(), RaffleError>>()
+                .invoke()
+                .or(Err(RaffleError::CrossContractCallError2))?;
 
             // emit event RaffleDone
             self.env().emit_event(RaffleDone {

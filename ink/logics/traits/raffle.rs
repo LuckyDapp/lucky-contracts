@@ -109,6 +109,10 @@ pub trait BaseRaffle: RaffleStorage + KvStore + BaseAccessControl {
         let caller = ::ink::env::caller::<DefaultEnvironment>();
         self.inner_check_role(RAFFLE_MANAGER_ROLE, caller)?;
 
+        self.inner_set_next_era_unchecked(next_era)
+    }
+
+    fn inner_set_next_era_unchecked(&mut self, next_era: u32) -> Result<(), RaffleError> {
         KvStore::inner_set_value(self, &NEXT_ERA.encode(), Some(&next_era.encode()));
         Ok(())
     }
@@ -120,7 +124,7 @@ pub trait BaseRaffle: RaffleStorage + KvStore + BaseAccessControl {
         }
 
         // set the raffle is done or skipped
-        self.inner_set_next_era(era.checked_add(1).ok_or(RaffleError::AddOverFlow)?)?;
+        self.inner_set_next_era_unchecked(era.checked_add(1).ok_or(RaffleError::AddOverFlow)?)?;
 
         Ok(())
     }
@@ -178,7 +182,7 @@ pub trait BaseRaffle: RaffleStorage + KvStore + BaseAccessControl {
         }
 
         // set the raffle is done
-        self.inner_set_next_era(era.checked_add(1).ok_or(RaffleError::AddOverFlow)?)?;
+        self.inner_set_next_era_unchecked(era.checked_add(1).ok_or(RaffleError::AddOverFlow)?)?;
 
         Ok(winners_and_rewards)
     }

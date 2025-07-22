@@ -5,10 +5,8 @@ authors = ["guigou"]
 edition = "2021"
 
 [dependencies]
-ink = { version = "4.3.0", default-features = false}
-scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
-scale-info = { version = "2.9.0", default-features = false, features = ["derive"], optional = true }
-openbrush = { version = "4.0.0-beta", git = "https://github.com/Brushfam/openbrush-contracts", default-features = false, features = ["access_control"] }
+ink = { version = "5.1.1", default-features = false }
+inkv5_client_lib = { git = "https://github.com/GuiGou12358/sc-rollup", default-features = false}
 lucky = { path = "../../logics", default-features = false }
 
 [lib]
@@ -18,9 +16,7 @@ path = "lib.rs"
 default = ["std"]
 std = [
     "ink/std",
-    "scale/std",
-    "scale-info/std",
-    "openbrush/std",
+    "inkv5_client_lib/std",
     "lucky/std",
 ]
 ink-as-dependency = []
