@@ -1,0 +1,17 @@
+services:
+  app:
+    image: guigoudev/price-feed-oracle-phala-cloud:latest
+    container_name: app
+    ports:
+      - "3000:3000"
+    volumes:
+      - /var/run/tappd.sock:/var/run/tappd.sock
+    environment:
+      - INK_V5_CLIENT_RPC=${INK_V5_CLIENT_RPC}
+      - INK_V5_CLIENT_ADDRESS=${INK_V5_CLIENT_ADDRESS}
+      - INK_V5_ATTESTOR_PK=${INK_V5_ATTESTOR_PK}
+      - INK_V5_SENDER_PK=${INK_V5_SENDER_PK}
+      - INK_V6_CLIENT_RPC=${INK_V6_CLIENT_RPC}
+      - INK_V6_CLIENT_ADDRESS=${INK_V6_CLIENT_ADDRESS}
+      - INK_V6_ATTESTOR_PK=${INK_V6_ATTESTOR_PK}
+      - INK_V6_SENDER_PK=${INK_V6_SENDER_PK}

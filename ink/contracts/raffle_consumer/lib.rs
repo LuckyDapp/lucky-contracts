@@ -39,16 +39,6 @@ pub mod raffle_consumer {
         era: u32,
     }
 
-    #[ink(event)]
-    pub struct ErrorReceived {
-        /// era requested
-        era: u32,
-        /// error
-        error: Vec<u8>,
-        /// when the error has been received
-        timestamp: u64,
-    }
-
     /// Contract storage
     #[derive(Default)]
     #[ink(storage)]
@@ -209,13 +199,6 @@ pub mod raffle_consumer {
             Ok(())
         }
 
-    }
-
-    #[ink::scale_derive(Encode, Decode)]
-    pub struct RaffleRequestMessage {
-        pub era: u32,
-        pub nb_winners: u16,
-        pub excluded: Vec<AccountId>,
     }
 
     #[ink::scale_derive(Encode, Decode)]
