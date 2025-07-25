@@ -16,6 +16,12 @@ test("get era info", async () => {
 test("get rewards", async () => {
     const rewards = await indexer.getRewards(1110);
     expect(rewards).toBeGreaterThan(151932511267021804080n);
+
+    console.log("rewards for ear 1145 : " + await indexer.getRewards(1145));
+    console.log("rewards for ear 1146 : " + await indexer.getRewards(1146));
+    console.log("rewards for ear 1147 : " + await indexer.getRewards(1147));
+    console.log("rewards for ear 1148 : " + await indexer.getRewards(1148));
+
 });
 
 test("query salt 20", async () => {

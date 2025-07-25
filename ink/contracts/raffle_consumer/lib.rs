@@ -3,6 +3,7 @@
 #[ink::contract]
 pub mod raffle_consumer {
     use ink::env::call::{ExecutionInput, Selector};
+    use ink::env::debug_message;
     use ink::prelude::vec::Vec;
     use inkv5_client_lib::only_role;
     use inkv5_client_lib::traits::access_control::*;
@@ -102,8 +103,10 @@ pub mod raffle_consumer {
                 .dapps_staking_developer_address
                 .ok_or(RaffleError::DappsStakingDeveloperAddressMissing)?;
 
+            debug_message("call dAppStaking dev contract");
             ink::env::call::build_call::<Environment>()
                 .call(dapps_staking_developer_address)
+                .call_v1()
                 .exec_input(
                     ExecutionInput::new(Selector::new(WITHDRAW_SELECTOR)).push_arg(given_rewards),
                 )
@@ -115,8 +118,11 @@ pub mod raffle_consumer {
             let reward_manager_address = self
                 .reward_manager_address
                 .ok_or(RaffleError::RewardManagerAddressMissing)?;
+
+            debug_message("call reward manager contract");
             ink::env::call::build_call::<Environment>()
                 .call(reward_manager_address)
+                .call_v1()
                 .transferred_value(given_rewards)
                 .exec_input(
                     ExecutionInput::new(Selector::new(FUND_REWARDS_AND_WINNERS_SELECTOR))

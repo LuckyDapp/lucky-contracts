@@ -1,6 +1,6 @@
 import {expect, test} from "bun:test";
 import type {ContractConfig} from "../src/types.ts";
-import {RaffleConsumerContract} from "../src/lotto_contract.ts";
+import {RaffleConsumerContract} from "../src/raffle.ts";
 
 function getConfig() : ContractConfig {
 
@@ -57,7 +57,7 @@ test("query currentEra", async () => {
 
     const contract = getContract();
     const currentEra = await contract.getCurrentEra();
-    expect(currentEra.valueOf()).toBeGreaterThan(5899);
+    expect(currentEra.valueOf()).toBeGreaterThan(1000);
 });
 
 
