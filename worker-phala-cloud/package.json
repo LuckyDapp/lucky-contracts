@@ -1,5 +1,5 @@
 {
-  "name": "lucky-phala-cloud",
+  "name": "lucky-worker-phala-cloud",
   "module": "src/index.ts",
   "type": "module",
   "private": true,
