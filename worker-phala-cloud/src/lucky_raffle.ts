@@ -12,26 +12,19 @@ import {
     type RaffleResponseMessage,
     raffleResponseMessageCodec
 } from "./wasm_codec.ts";
-import {astar} from "@polkadot-api/descriptors";
-import {createClient, type PolkadotClient} from "polkadot-api";
-import {withPolkadotSdkCompat} from "polkadot-api/polkadot-sdk-compat";
-import {getWsProvider} from "polkadot-api/ws-provider/web";
 import {Bytes} from "scale-ts";
 import {Indexer} from "./indexer.ts";
 import {Vrf} from "@guigou/util-crypto";
-import type {SS58String} from "@polkadot-api/substrate-bindings";
 
 const MAX_ERA = 999999999;
 
 export class RaffleConsumerContract {
     private readonly indexer;
     private readonly client: InkClient<Uint8Array, RaffleResponseMessage>;
-    private readonly polkadotClient : PolkadotClient;
     private readonly vrf : Vrf;
 
-    constructor(graphApi : string, config: ContractConfig | null) {
+    constructor(config: ContractConfig | null, indexer: Indexer, vrf: Vrf) {
 
-        this.indexer = new Indexer(graphApi);
 
         if (!config) throw new Error('WasmContractNotConfigured');
 
@@ -43,8 +36,8 @@ export class RaffleConsumerContract {
             Bytes(),
             raffleResponseMessageCodec
         );
-        this.polkadotClient = createClient(withPolkadotSdkCompat(getWsProvider(config.rpc)));
-        this.vrf = Vrf.getFromSeed(hexToU8a(config.attestorKey));
+        this.indexer = indexer;
+        this.vrf = vrf;
 
     }
 
@@ -76,28 +69,8 @@ export class RaffleConsumerContract {
         }
     }
 
-    async getCurrentEra() : Promise<number> {
-        const currentEraInfo = await this.polkadotClient.getTypedApi(astar).query.DappStaking.CurrentEraInfo.getValue();
-        return currentEraInfo.current_stake_amount.era;
-    }
 
-    async claimDAppStaking(
-        era: number
-    ) : Promise<void>{
-
-        const dAppStakingApplicationSmartContractAddress : SS58String = "";
-
-        const tx = this.polkadotClient.getTypedApi(astar).tx.DappStaking.claim_dapp_reward(
-            {
-                era,
-                smart_contract: {  type: "Wasm", value: dAppStakingApplicationSmartContractAddress },
-            }
-        );
-    }
-
-
-
-    async runRaffle() {
+    async runRaffle(targetEra: Era) {
 
         await this.client.startSession();
 
@@ -113,9 +86,7 @@ export class RaffleConsumerContract {
             throw new Error('nbWinners is not set');
         }
 
-        const currentEra = await this.getCurrentEra();
-
-        while (era < currentEra){
+        while (era < targetEra){
             console.log("Run raffle for era %s", era);
             const tx = await this.runRaffleForEra(era, nbWinners);
             console.log("Submit transaction : " + tx);

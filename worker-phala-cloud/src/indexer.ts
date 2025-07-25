@@ -1,7 +1,7 @@
 // TypeScript translation of the Rust `Indexer` struct and its methods
 
 import axios from "axios";
-import type {EraInfo, Participant} from "./types.ts";
+import type {Era, EraInfo, Participant} from "./types.ts";
 
 interface DAppStakingEraNode {
     era: number;
@@ -182,6 +182,26 @@ export class Indexer {
 
         console.log(`Number of participants: ${participants.length}`);
         return participants;
+    }
+
+
+    async getLastEraReceivedReward(): Promise<Era> {
+
+        const query = {
+            query : 'query {dAppRewards(orderBy: ERA_DESC, first:1) {nodes {era}}}'
+        };
+
+        const response = await axios.post<DAppRewardsResponse>(this.endpoint, query, {
+            headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+            },
+        }).catch(() => { throw new Error("FailedToFetchParticipant"); });
+
+        const era = response.data?.data.dAppRewards.nodes[0].era;
+        console.log('Last era when the dApp received the rewards: %s', era);
+        return era;
+
     }
 
 }

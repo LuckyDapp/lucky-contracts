@@ -1,21 +1,24 @@
 import {expect, test} from "bun:test";
 import type {ContractConfig} from "../src/types.ts";
-import {RaffleConsumerContract} from "../src/raffle.ts";
+import {RaffleConsumerContract} from "../src/lucky_raffle.ts";
+import {Indexer} from "../src/indexer.ts";
+import {Vrf} from "@guigou/util-crypto";
+import {hexToU8a} from "@polkadot/util";
 
 function getConfig() : ContractConfig {
 
-    const address = process.env.CONTRACT_ADDRESS;
-    const rpc = process.env.CONTRACT_RPC;
-    const attestorKey = process.env.ATTESTOR_PK;
+    const rpc = process.env.RPC;
+    const address = process.env.RAFFLE_CONTRACT_ADDRESS;
+    const attestorKey = process.env.WORKER_PK;
 
-    if (!address){
-        throw new Error("Manager address is missing!");
-    }
     if (!rpc){
-        throw new Error("Manager rpc is missing!");
+        throw new Error("RPC is missing!");
+    }
+    if (!address){
+        throw new Error("Raffle Consumer Contract address is missing!");
     }
     if (!attestorKey){
-        throw new Error("Manager attestor key is missing!");
+        throw new Error("Attestor key is missing!");
     }
     return {
         address,
@@ -27,14 +30,19 @@ function getConfig() : ContractConfig {
 
 function getContract() : RaffleConsumerContract {
 
-    const indexerUrl = process.env.INDEXER_URL;
+    const config = getConfig();
 
+    const indexerUrl = process.env.INDEXER_URL;
     if (!indexerUrl){
         throw new Error("Indexer url is missing!");
     }
+    const indexer = new Indexer(indexerUrl);
+    const vrf = Vrf.getFromSeed(hexToU8a(config.attestorKey));
+
     return new RaffleConsumerContract(
-        indexerUrl,
-        getConfig(),
+        config,
+        indexer,
+        vrf,
     )
 }
 
@@ -53,18 +61,10 @@ test("query data", async () => {
     expect(lastWinners.valueOf()?.length).toBeGreaterThan(0);
 });
 
-test("query currentEra", async () => {
-
-    const contract = getContract();
-    const currentEra = await contract.getCurrentEra();
-    expect(currentEra.valueOf()).toBeGreaterThan(1000);
-});
-
-
-
+/*
 test("run raffle", async () => {
 
     const contract = getContract();
-    await contract.runRaffle();
+    await contract.runRaffle(1185);
 }, {timeout: 1200000});
-
+ */

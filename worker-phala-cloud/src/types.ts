@@ -9,6 +9,20 @@ export interface ContractConfig {
     senderKey?: string;
 }
 
+export interface DappStakingProxyConfig {
+    rpc: string;
+    address: string;
+    privateKey: string;
+}
+
+
+export interface WorkerInfo {
+    currentEra: Era;
+    lastEraReceivedReward: Era;
+    nextEra: Era;
+}
+
+
 export type EraInfo = {
     era: Era;
     period: string;
