@@ -198,9 +198,7 @@ export class Indexer {
             },
         }).catch(() => { throw new Error("FailedToFetchParticipant"); });
 
-        const era = response.data?.data.dAppRewards.nodes[0].era;
-        console.log('Last era when the dApp received the rewards: %s', era);
-        return era;
+        return response.data?.data.dAppRewards.nodes[0].era;
 
     }
 

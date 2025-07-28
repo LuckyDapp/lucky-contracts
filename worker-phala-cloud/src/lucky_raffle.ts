@@ -79,14 +79,14 @@ export class RaffleConsumerContract {
             throw new Error('Era is not set');
         }
         let era = oEra.orElse(MAX_ERA);
+        console.log("Run raffles - Last claimed era: %s - era %s", targetEra, era);
 
         const oNbWinners = await this.getNbWinners();
         const nbWinners = oNbWinners.valueOf();
         if (!nbWinners){
             throw new Error('nbWinners is not set');
         }
-
-        while (era < targetEra){
+        while (era <= targetEra){
             console.log("Run raffle for era %s", era);
             const tx = await this.runRaffleForEra(era, nbWinners);
             console.log("Submit transaction : " + tx);
@@ -111,7 +111,6 @@ export class RaffleConsumerContract {
 
         } else {
             console.log(`BuildAndEarn subPeriod for era: ${era} => run raffle`);
-
 
             const rewards = await this.indexer.getRewards(era);
             console.log(`Total rewards for this era: ${rewards}`);
@@ -193,13 +192,6 @@ function convertAddressesToString(addresses: AccountId[]) : string[] {
 
 function convertAddressToString(address: AccountId) : string {
     return encodeAddress(address, 5);
-    /*
-    let address_hex: [u8; 32] = scale::Encode::encode(&address)
-        .try_into()
-        .expect("incorrect length");
-    AccountId32::from(address_hex)
-        .to_ss58check_with_version(Ss58AddressFormatRegistry::AstarAccount.into())
-     */
 }
 
 function convertAddressesFromString(addresses: string[]) : AccountId[] {

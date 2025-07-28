@@ -38,7 +38,8 @@ export class LuckyWorker {
         const currentEra = await this.dappStakingProxy.getCurrentEra();
         const lastEraReceivedReward = await this.indexer.getLastEraReceivedReward();
 
-        let era = lastEraReceivedReward + 1;
+        let era = +lastEraReceivedReward + 1;
+        console.log("Claim all raffles - current era %s - era %s", currentEra, era);
         while (era < currentEra){
             const eraInfo = await this.indexer.getEraInfo(era);
             if (eraInfo.subPeriod.toUpperCase() != "VOTING") {
@@ -47,12 +48,13 @@ export class LuckyWorker {
             } else {
                 console.log("No reward for era (voting sub-period)", era);
             }
+            era++;
         }
     }
 
     async runRaffles() {
-        const currentEra = await this.dappStakingProxy.getCurrentEra();
-        await this.raffleConsumerContract.runRaffle(currentEra);
+        const lastEraReceivedReward = await this.indexer.getLastEraReceivedReward();
+        await this.raffleConsumerContract.runRaffle(lastEraReceivedReward);
 
     }
 
