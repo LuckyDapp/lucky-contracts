@@ -5,21 +5,17 @@ authors = ["guigou"]
 edition = "2021"
 
 [dependencies]
-ink = { version = "4.3.0", default-features = false}
-scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
-scale-info = { version = "2", default-features = false, features = ["derive"], optional = true }
-openbrush = { version = "4.0.0-beta", git = "https://github.com/Brushfam/openbrush-contracts", default-features = false, features = ["ownable", "access_control", "upgradeable"] }
+ink = { version = "5.1.1", default-features = false }
+inkv5_client_lib = { git = "https://github.com/GuiGou12358/sc-rollup", default-features = false}
 lucky = { path = "../logics", default-features = false }
 reward_manager = { path = "../contracts/reward_manager", default-features = false, features = ["ink-as-dependency"] }
 dapps_staking_developer = { path = "../contracts/dapps_staking_developer", default-features = false, features = ["ink-as-dependency"] }
 raffle_consumer = { path = "../contracts/raffle_consumer", default-features = false, features = ["ink-as-dependency"] }
 
-phat_rollup_anchor_ink = { git = "https://github.com/GuiGou12358/phat-offchain-rollup" , default-features = false}
-
 [dev-dependencies]
-ink_e2e = { version = "4.3.0" }
-hex-literal = { version = "0.4.1" }
-subxt-signer = { version = "0.31.0" }
+ink_e2e = { version = "5.1.1" }
+hex-literal = { version = "1.0.0" }
+subxt-signer = { version = "0.43.0" }
 
 [lib]
 path = "lib.rs"
@@ -28,16 +24,12 @@ path = "lib.rs"
 default = ["std"]
 std = [
     "ink/std",
-    "scale/std",
-    "scale-info/std",
-    "openbrush/std",
+    "inkv5_client_lib/std",
     "lucky/std",
     "reward_manager/std",
     "dapps_staking_developer/std",
-    "phat_rollup_anchor_ink/std",
     "raffle_consumer/std",
 ]
-ink-as-dependency = []
 e2e-tests = []
 
 [profile.release]

@@ -674,9 +674,9 @@ mod lucky_raffle {
         let _ = env_logger::try_init();
         pink_extension_runtime::mock_ext::mock_all_ext();
 
-        let address_string = "aGPdXs8Ke2e9zE57EhMyYAVMC15VEbYBSGmmaVQCcdJkzgK".to_string();
+        let address_string = "VzfTbmS78JcknxhvdgrxGRHeTqkGdh8o35PfiLSM7cZbMAC".to_string();
         let response_sc = ResponseJs {
-            era: 4589,
+            era: 5015,
             skipped: false,
             rewards: 163483092786717962675,
             winners: vec![address_string],
@@ -684,5 +684,106 @@ mod lucky_raffle {
 
         let response = convert_output(response_sc.encode());
         ink::env::debug_println!("output: {response:02x?}");
+    }
+
+    #[ink::test]
+    fn test_encode_reply() {
+        let _ = env_logger::try_init();
+        pink_extension_runtime::mock_ext::mock_all_ext();
+
+        let era = 5016;
+        let nb_winners = 3;
+        let mut excluded = Vec::new();
+        // Z5VAv3wwBuH15d1gAgjztz8CQPG6rwekFYxavgjhggJicsk
+        excluded.push(convert_address(
+            "8af348b187a2e94f7dfcacc1de5c71b55f6ab8a50e75f0ac1a15baeebfd92e03",
+        ));
+        // ZjyoCabAjvNo9Evx1jc4Kysi3mG5ynchMcn6JPkR5c4SiYh
+        excluded.push(convert_address(
+            "a84ef8c0efdd519e001cb3f5b6351725178283edf1b122a464f0a0f425699759",
+        ));
+        // beVJDH4QHwagLCv9LjHAQA2ZPUesQXF4BQvoGQ68Yt16sso
+        excluded.push(convert_address(
+            "fc9745d14123e9ad945375d5681ebc3266e45a7ba5924adf9a061b4c8951c210",
+        ));
+        // ZSL4XKCjjobePpeQZRLVkEboWT3HFezuKEZabK9viSsJsGc
+        excluded.push(convert_address(
+            "9ad8c50ef2cf1ef56b9129e1d471d897018d1314c3618fa9c0a75f875bd16c68",
+        ));
+        // XwPQ6Zj4Y3UM1vFEyMwPiNCpmbtYHLe8TXHdNVp7fU6qYmj
+        excluded.push(convert_address(
+            "5889a78dc053a819141e39ab80638a30ea71edcadff45abc663973817b648c33",
+        ));
+        // X2WUWWpxJP4aaQnkdftwgziX29U6YmR6EAV4Z4ck2SiBf7v
+        excluded.push(convert_address(
+            "303577e2947dbcc5a1189e4bf527c4f8ec54aa0fcfb4e1a07bfdb9928aa70f64",
+        ));
+        // YSS3vdcp8EoThvdDb32CmZYMaGaQUfTCvpH3paWJ1Ddc7Ym
+        excluded.push(convert_address(
+            "6eb0b30beb0726ae75d11f781f0b8a7d56636f6bd36c45d8892248ea2d800a66",
+        ));
+        // VzfTbmS78JcknxhvdgrxGRHeTqkGdh8o35PfiLSM7cZbMAC
+        excluded.push(convert_address(
+            "0290fceaac42bbfcd509a936c6e7e91f1cb92b9f9b12c5ed83b2da58dfcc7056",
+        ));
+
+        let request_sc = RequestSc {
+            era,
+            nb_winners,
+            excluded,
+        };
+        let request_js = convert_request(&request_sc);
+        let encoded_request = scale::Encode::encode(&request_js);
+        ink::env::debug_println!("encoded request: {encoded_request:02x?}");
+        //"0x97130000010020bc6177344a4733446f58364b5241424a4866696b59687938696e576176706d7931465a4a6955596f31537a3778456437bc5a35564176337777427548313564316741676a7a747a3843515047367277656b4659786176676a6867674a6963736bbc5a6a796f436162416a764e6f39457678316a63344b797369336d4735796e63684d636e364a506b5235633453695968bc6265564a44483451487761674c4376394c6a48415141325a50556573515846344251766f475136385974313673736fbc5a534c34584b436a6a6f6265507065515a524c566b45626f5754334846657a754b455a61624b39766953734a734763bc58775051365a6a345933554d31764645794d7750694e43706d627459484c6538545848644e56703766553671596d6abc58325755575770784a50346161516e6b64667477677a695832395536596d5236454156345a34636b32536942663776bc595353337664637038456f5468766444623332436d5a594d6147615155665443767048337061574a3144646337596d"
+
+        let response_sc = ResponseJs {
+            era,
+            skipped: false,
+            rewards: 163483092786717962675,
+            winners: vec![
+                "WAsEdTzXTfCmweU62WGyDvcjcV9u4qd6FrHEfwoEj6f4z4f".to_string(),
+                "ajYMsCKsEAhEvHpeA4XqsfiA9v1CdzZPrCfS6pEfeGHW9j8".to_string(),
+                "ZAP5o2BjWAo5uoKDE6b6Xkk4Ju7k6bDu24LNjgZbfM3iyiR".to_string(),
+            ],
+        };
+
+        let encoded_response = convert_output(response_sc.encode());
+        ink::env::debug_println!("encoded response js: {encoded_response:02x?}");
+
+        let mut input_hash =
+            <ink::env::hash::Sha2x256 as ink::env::hash::HashOutput>::Type::default();
+        ink::env::hash_bytes::<ink::env::hash::Sha2x256>(&request_sc.encode(), &mut input_hash);
+
+        let js_script_hash: [u8; 32] =
+            hex::decode("6e0fa1cd2780cb1d2c6af3f8fb56dffc37198923009f7756796edf6c9c6ab464")
+                .expect("hex decode failed")
+                .try_into()
+                .expect("incorrect length");
+
+        let settings_hash: [u8; 32] =
+            hex::decode("0c7bf54e0c2cc651d2527d412c18baa72feea59260fb9d2efbbf2cab05d6ec1a")
+                .expect("hex decode failed")
+                .try_into()
+                .expect("incorrect length");
+
+        let response_message = ResponseMessage::JsResponse {
+            js_script_hash,
+            input_hash,
+            settings_hash,
+            output_value: encoded_response,
+        };
+
+        let encoded_response_message = response_message.encode();
+        ink::env::debug_println!("encoded response message: {encoded_response_message:02x?}");
+    }
+
+    //fn convert_address(public_key: String) -> AccountId {
+    fn convert_address<T: AsRef<[u8]>>(public_key: T) -> AccountId {
+        let address_hex: [u8; 32] = hex::decode(public_key)
+            .expect("hex decode failed")
+            .try_into()
+            .expect("incorrect length");
+        AccountId::from(address_hex)
     }
 }
