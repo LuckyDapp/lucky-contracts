@@ -270,34 +270,34 @@ serve({
 
         "<h2>Astar Network</h2>" +
         "<div><ul>" +
-        "<li><a href='/worker/astar/status'>/worker/astar/status</a>: Display the information comming from the dApp and the scheduled task status</li>" +
+        "<li><a href='/worker/astar/status'>/worker/astar/status</a>: Display the information comming from dApp and the scheduled task status.</li>" +
         "<li><a href='/worker/astar/start'>/worker/astar/start</a>: Start a scheduled task, running every hour, to claim the rewards and run the raffles.</li>" +
         "<li><a href='/worker/astar/stop'>/worker/astar/stop</a>: Stop the scheduled task.</li>" +
-        "<li><a href='/worker/astar/execute'>/worker/astar/execute</a>: Force the scheduled task.</li>" +
-        "<li><a href='/worker/astar/destroy'>/worker/astar/destroy</a>: Delete the worker to free memory</li>" +
-        "<li><a href='/worker/astar/account'>/worker/astar/account</a>: Using the `deriveKey` API to generate a deterministic wallet for Polkadot, a.k.a. a wallet held by the TEE instance.</li>" +
+        "<li><a href='/worker/astar/execute'>/worker/astar/execute</a>: Force the scheduled task execution.</li>" +
+        "<li><a href='/worker/astar/destroy'>/worker/astar/destroy</a>: Delete the worker to free memory.</li>" +
+        "<li><a href='/worker/astar/account'>/worker/astar/account</a>: Using the `deriveKey` API to generate a deterministic wallet for Substrate, a.k.a. a wallet held by the TEE instance.</li>" +
         "<li><a href='/worker/astar/tdx-quote-raw'>/worker/astar/tdx-quote-raw</a>: The `reportdata` is the worker public key and generates the quote for attestation report. You can see the `worker public key` in <a href='https://proof.t16z.com' target='_blank'>Attestation Explorer</a>.</li>" +
         "</ul></div>" +
 
         "<h2>Shiden Network</h2>" +
         "<div><ul>" +
-        "<li><a href='/worker/shiden/status'>/worker/shiden/status</a>: Display the information comming from the dApp and the scheduled task status</li>" +
+        "<li><a href='/worker/shiden/status'>/worker/shiden/status</a>: Display the information comming from dApp and the scheduled task status.</li>" +
         "<li><a href='/worker/shiden/start'>/worker/shiden/start</a>: Start a scheduled task, running every hour, to claim the rewards and run the raffles.</li>" +
         "<li><a href='/worker/shiden/stop'>/worker/shiden/stop</a>: Stop the scheduled task.</li>" +
-        "<li><a href='/worker/shiden/execute'>/worker/shiden/execute</a>: Force the scheduled task.</li>" +
-        "<li><a href='/worker/shiden/destroy'>/worker/shiden/destroy</a>: Delete the worker to free memory</li>" +
-        "<li><a href='/worker/shiden/account'>/worker/shiden/account</a>: Using the `deriveKey` API to generate a deterministic wallet for Polkadot, a.k.a. a wallet held by the TEE instance.</li>" +
+        "<li><a href='/worker/shiden/execute'>/worker/shiden/execute</a>: Force the scheduled task execution.</li>" +
+        "<li><a href='/worker/shiden/destroy'>/worker/shiden/destroy</a>: Delete the worker to free memory.</li>" +
+        "<li><a href='/worker/shiden/account'>/worker/shiden/account</a>: Using the `deriveKey` API to generate a deterministic wallet for Substrate, a.k.a. a wallet held by the TEE instance.</li>" +
         "<li><a href='/worker/shiden/tdx-quote-raw'>/worker/shiden/tdx-quote-raw</a>: The `reportdata` is the worker public key and generates the quote for attestation report. You can see the `worker public key` in <a href='https://proof.t16z.com' target='_blank'>Attestation Explorer</a>.</li>" +
         "</ul></div>" +
 
         "<h2>Shibuya Network</h2>" +
         "<div><ul>" +
-        "<li><a href='/worker/shibuya/status'>/worker/shibuya/status</a>: Display the information comming from the dApp and the scheduled task status</li>" +
+        "<li><a href='/worker/shibuya/status'>/worker/shibuya/status</a>: Display the information comming from dApp and the scheduled task status.</li>" +
         "<li><a href='/worker/shibuya/start'>/worker/shibuya/start</a>: Start a scheduled task, running every hour, to claim the rewards and run the raffles.</li>" +
         "<li><a href='/worker/shibuya/stop'>/worker/shibuya/stop</a>: Stop the scheduled task.</li>" +
-        "<li><a href='/worker/shibuya/execute'>/worker/shibuya/execute</a>: Force the scheduled task.</li>" +
-        "<li><a href='/worker/shibuya/destroy'>/worker/shibuya/destroy</a>: Delete the worker to free memory</li>" +
-        "<li><a href='/worker/shibuya/account'>/worker/shibuya/account</a>: Using the `deriveKey` API to generate a deterministic wallet for Polkadot, a.k.a. a wallet held by the TEE instance.</li>" +
+        "<li><a href='/worker/shibuya/execute'>/worker/shibuya/execute</a>: Force the scheduled task execution.</li>" +
+        "<li><a href='/worker/shibuya/destroy'>/worker/shibuya/destroy</a>: Delete the worker to free memory.</li>" +
+        "<li><a href='/worker/shibuya/account'>/worker/shibuya/account</a>: Using the `deriveKey` API to generate a deterministic wallet for Substrate, a.k.a. a wallet held by the TEE instance.</li>" +
         "<li><a href='/worker/shibuya/tdx-quote-raw'>/worker/shibuya/tdx-quote-raw</a>: The `reportdata` is the worker public key and generates the quote for attestation report. You can see the `worker public key` in <a href='https://proof.t16z.com' target='_blank'>Attestation Explorer</a>.</li>" +
         "</ul></div>" +
 
