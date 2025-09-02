@@ -198,7 +198,8 @@ export class Indexer {
             },
         }).catch(() => { throw new Error("FailedToFetchParticipant"); });
 
-        return response.data?.data.dAppRewards.nodes[0].era;
+        const era = response.data?.data.dAppRewards.nodes[0].era;
+        return Number(era); // force the typing
 
     }
 

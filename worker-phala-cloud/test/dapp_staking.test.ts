@@ -1,11 +1,7 @@
 import {expect, test} from "bun:test";
 import {DappStakingProxy} from "../src/dapp_staking.ts";
 import {hexAddPrefix} from "@polkadot/util";
-
-
-const rpc = process.env.RPC;
-const pk = process.env.WORKER_PK;
-const developerContractAddress = process.env.DAPP_STAKING_CONTRACT_ADDRESS;
+import {developerContractAddress, pk, rpc} from "./constants.ts";
 
 function getDappStakingProxy() : DappStakingProxy {
 

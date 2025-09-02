@@ -13,7 +13,7 @@ test("get era info", async () => {
     expect(eraInfo.subPeriod).toBe("BuildAndEarn");
 
 
-    for (let era = 1192 ; era > 1184; era--){
+    for (let era = 1194 ; era > 1184; era--){
         console.log("info for " + era +  "  : " + await indexer.getEraInfo(era));
     }
 
@@ -23,8 +23,16 @@ test("get rewards", async () => {
     const rewards = await indexer.getRewards(1110);
     expect(rewards).toBeGreaterThan(151932511267021804080n);
 
-    for (let era = 1190 ; era > 1184; era--){
-        console.log("rewards for " + era +  "  : " + await indexer.getRewards(era));
+    for (let era = 1194 ; era > 1184; era--){
+        try {
+            console.log("rewards for " + era + "  : " + await indexer.getRewards(era));
+        } catch (e){
+            if (e.message == "NoReward"){
+                console.log("No reward for " + era);
+            } else {
+                throw e;
+            }
+        }
     }
 });
 
@@ -36,6 +44,7 @@ test("query salt 20", async () => {
 
 test("query get Last Era Received Reward", async () => {
     const era = await indexer.getLastEraReceivedReward();
+    console.log("Last Era Received Reward" + era);
     expect(era).toBeNumber();
     expect(era).toBeGreaterThan(1000);
 });

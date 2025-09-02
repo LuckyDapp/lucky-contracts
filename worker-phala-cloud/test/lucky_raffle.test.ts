@@ -4,26 +4,24 @@ import {RaffleConsumerContract} from "../src/lucky_raffle.ts";
 import {Indexer} from "../src/indexer.ts";
 import {Vrf} from "@guigou/util-crypto";
 import {hexToU8a} from "@polkadot/util";
+import {clientContractAddress, pk, rpc} from "./constants.ts";
 
 function getConfig() : ContractConfig {
 
-    const rpc = process.env.RPC;
-    const address = process.env.RAFFLE_CONTRACT_ADDRESS;
-    const attestorKey = process.env.WORKER_PK;
 
     if (!rpc){
         throw new Error("RPC is missing!");
     }
-    if (!address){
+    if (!clientContractAddress){
         throw new Error("Raffle Consumer Contract address is missing!");
     }
-    if (!attestorKey){
+    if (!pk){
         throw new Error("Attestor key is missing!");
     }
     return {
-        address,
+        address: clientContractAddress,
         rpc,
-        attestorKey,
+        attestorKey: pk,
         senderKey: undefined,
     };
 }
@@ -32,7 +30,7 @@ function getContract() : RaffleConsumerContract {
 
     const config = getConfig();
 
-    const indexerUrl = process.env.INDEXER_URL;
+    const indexerUrl = process.env.SHIBUYA_INDEXER_URL;
     if (!indexerUrl){
         throw new Error("Indexer url is missing!");
     }

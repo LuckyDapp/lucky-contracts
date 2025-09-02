@@ -2,6 +2,8 @@ export type Era = number;
 export type Balance = bigint;
 export type AccountId = Uint8Array; // 32 bytes
 
+export enum Chain { Shibuya, Shiden, Astar}
+
 export interface ContractConfig {
     rpc: string;
     address: string;
