@@ -27,7 +27,7 @@ const astarDappStakingContractAddress = process.env.ASTAR_DAPP_STAKING_CONTRACT_
 const astarWorkerPk = process.env.ASTAR_WORKER_PK;
 const astarIndexerUrl = process.env.ASTAR_INDEXER_URL;
 
-const port = process.env.PORT || 3100;
+const port = process.env.PORT || 3010;
 console.log(`Listening on port ${port}`);
 
 

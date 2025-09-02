@@ -34,7 +34,7 @@ Once the simulator is running, you need to open another terminal to start your B
 bun run dev
 ```
 
-By default, the Bun development server will listen on port 3000. Open http://127.0.0.1:3000/ in your browser to display teh menu.
+By default, the Bun development server will listen on port 3000. Open http://127.0.0.1:3010/ in your browser to display teh menu.
 
 ## Build
 
