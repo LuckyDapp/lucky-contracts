@@ -1,0 +1,12 @@
+{
+  "version": 0,
+  "descriptorPath": ".papi/descriptors",
+  "entries": {
+    "astar": {
+      "wsUrl": "wss://rpc.astar.network",
+      "metadata": ".papi/metadata/astar.scale",
+      "genesis": "0x9eb76c5184c4ab8679d2d5d819fdf90b9c001403e9e17da2e14b6d8aec4029c6",
+      "codeHash": "0xa68ba90806665c39298646cb7dcdb9d312c3c0c5359f1f793330c44994334c1f"
+    }
+  }
+}
