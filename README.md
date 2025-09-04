@@ -26,10 +26,14 @@ There are three ink! smart contracts deployed on Astar Network:
 
 More information [here](ink/README.md).
 
-## Phat contracts
+## Worker deployed on Phala Cloud (TEE)
 
-There are two phat contracts deployed on Phala Network:
-- `dapp_staking` : this phat contract calls the `dAppStaking` pallet to claim the dApp rewards,
-- `raffle` : this phat contract manages the raffle and sent the result to the `raffle_consumer` contract.
+The worker deployed on Phala Cloud does :
+ - read off-chain data from the GraphQL indexer,
+ - read on-chain data from the smart contract,
+ - manage the raffle with a VRF (Verifiable Random Function)
+ - submit the transaction to provide the winner(s) to smart contract
 
-More information [here](phat/README.md).
+This offchain computung is deployed on [Phala Cloud, a Trustless Infrastructure powered by TEE](https://docs.phala.com/phala-cloud/what-is/what-is-phala-cloud). 
+
+More information [here](worker-phala-cloud/README.md).
