@@ -22,7 +22,7 @@ To try to give everyone a chance and prevent a whale from getting all the reward
 There are three ink! smart contracts deployed on Astar Network:
  - `dapp_staking_developer` : this contract receives the rewards from the `dAppStaking` pallet,
  - `reward_manager` : this contract contains the list of winners and the funds to be claimed. The users interact with this smart contract,
- - `raffle_consumer` : this smart contract consumes the output of the raffle managed by the `raffle` phat contract. This contract interacts with `dapp_staking_developer` contract to withdraw the required funds and with the `reward_manager` to provide the lucky addresses and the rewards. 
+ - `raffle_consumer` : this smart contract consumes the output of the raffle managed by the `worker deployed on Phala Cloud`. This contract interacts with `dapp_staking_developer` contract to withdraw the required funds and with the `reward_manager` to provide the lucky addresses and the rewards. 
 
 More information [here](ink/README.md).
 
